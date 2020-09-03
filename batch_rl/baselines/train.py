@@ -38,6 +38,10 @@ import tensorflow.compat.v1 as tf
 
 
 flags.DEFINE_string('agent_name', 'dqn', 'Name of the agent.')
+flags.DEFINE_string('base_dir', None,
+                    'Base directory to host all required sub-directories.')
+flags.DEFINE_string(
+    'gin_file', 'batch_rl/baselines/configs/dqn.gin', 'Path to gin configuration file.')
 FLAGS = flags.FLAGS
 
 
@@ -67,9 +71,9 @@ def create_agent(sess, environment, replay_log_dir, summary_writer=None):
                replay_log_dir=replay_log_dir, summary_writer=summary_writer)
 
 
-def main(unused_argv):
+def run(unused_argv):
   tf.logging.set_verbosity(tf.logging.INFO)
-  run_experiment.load_gin_configs(FLAGS.gin_files, FLAGS.gin_bindings)
+  run_experiment.load_gin_configs([FLAGS.gin_file], [])
   # Create the replay log dir.
   replay_log_dir = os.path.join(FLAGS.base_dir, 'replay_logs')
   tf.logging.info('Saving replay buffer data to {}'.format(replay_log_dir))
@@ -78,7 +82,9 @@ def main(unused_argv):
   runner = LoggedRunner(FLAGS.base_dir, create_agent_fn)
   runner.run_experiment()
 
+def main():
+  flags.mark_flag_as_required('base_dir')
+  app.run(run)
 
 if __name__ == '__main__':
-  flags.mark_flag_as_required('base_dir')
-  app.run(main)
+  main()

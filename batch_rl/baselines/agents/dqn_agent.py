@@ -57,6 +57,9 @@ class LoggedDQNAgent(dqn_agent.DQNAgent):
     Returns:
       A WrapperReplayBuffer object.
     """
+    import numpy as np
+    from dopamine.replay_memory.circular_replay_buffer import ReplayElement
+
     return logged_replay_buffer.WrappedLoggedReplayBuffer(
         log_dir=self._replay_log_dir,
         observation_shape=self.observation_shape,
@@ -64,4 +67,5 @@ class LoggedDQNAgent(dqn_agent.DQNAgent):
         use_staging=use_staging,
         update_horizon=self.update_horizon,
         gamma=self.gamma,
+        extra_storage_types=[ReplayElement('prob', [], np.float32)],
         observation_dtype=self.observation_dtype.as_numpy_dtype)

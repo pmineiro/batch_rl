@@ -1,3 +1,16 @@
+# Important info about this fork
+
+This fork is meant to work together with [my dopamine fork](https://github.com/n17s/dopamine)
+
+To get started: 
+- In a directory `atari` clone both this fork and my dopamine fork
+- docker pull justnikos/batchrl 
+- Start a docker container with this image that mounts the `atari` directory so that it is accessible inside the container.
+- Create a venv for this project (always a good idea)
+- activate the venv (`source venv/bin/activate`)
+- Go to the dopamine repo and pip install it as editable (find where setup.py resides and do `pip install -e .`)
+- Now any changes in our dopamine fork will be reflected immediately in batch_rl 
+
 # An Optimistic Perspective on Offline Reinforcement Learning (ICML, 2020)
 
 This project provides the open source implementation using the

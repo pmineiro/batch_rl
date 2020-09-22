@@ -21,7 +21,7 @@ from __future__ import print_function
 
 import collections
 from concurrent import futures
-from dopamine.replay_memory import circular_replay_buffer
+from dopamine.replay_memory import circular_replay_buffer, off_policy_replay_buffer
 
 import numpy as np
 import tensorflow.compat.v1 as tf
@@ -31,6 +31,8 @@ gfile = tf.gfile
 
 STORE_FILENAME_PREFIX = circular_replay_buffer.STORE_FILENAME_PREFIX
 
+# a global for now; use gin later
+use_off_policy_replay_buffer = True
 
 class FixedReplayBuffer(object):
   """Object composed of a list of OutofGraphReplayBuffers."""
@@ -47,6 +49,10 @@ class FixedReplayBuffer(object):
     """
     self._args = args
     self._kwargs = kwargs
+    if use_off_policy_replay_buffer:
+        if self._kwargs['extra_storage_types'] is None:
+            self._kwargs['extra_storage_types'] = []
+        self._kwargs['extra_storage_types'].append(circular_replay_buffer.ReplayElement('prob', [], np.float32))
     self._data_dir = data_dir
     self._loaded_buffers = False
     self.add_count = np.array(0)
@@ -70,15 +76,19 @@ class FixedReplayBuffer(object):
   def _load_buffer(self, suffix):
     """Loads a OutOfGraphReplayBuffer replay buffer."""
     try:
-      # pytype: disable=attribute-error
-      replay_buffer = circular_replay_buffer.OutOfGraphReplayBuffer(
-          *self._args, **self._kwargs)
+      if use_off_policy_replay_buffer:
+        replay_buffer = off_policy_replay_buffer.OutOfGraphOffPolicyReplayBuffer(*self._args, **self._kwargs)
+      else:
+        # pytype: disable=attribute-error
+        replay_buffer = circular_replay_buffer.OutOfGraphReplayBuffer(
+            *self._args, **self._kwargs)
       replay_buffer.load(self._data_dir, suffix)
       tf.logging.info('Loaded replay buffer ckpt {} from {}'.format(
           suffix, self._data_dir))
       # pytype: enable=attribute-error
       return replay_buffer
     except tf.errors.NotFoundError:
+      # raise
       return None
 
   def _load_replay_buffers(self, num_buffers=None):
@@ -130,10 +140,11 @@ class FixedReplayBuffer(object):
   def add(self, *args, **kwargs):  # pylint: disable=unused-argument
     pass
 
+parent = off_policy_replay_buffer.WrappedOffPolicyReplayBuffer if use_off_policy_replay_buffer else circular_replay_buffer.WrappedReplayBuffer
 
 @gin.configurable(blacklist=['observation_shape', 'stack_size',
                              'update_horizon', 'gamma'])
-class WrappedFixedReplayBuffer(circular_replay_buffer.WrappedReplayBuffer):
+class WrappedFixedReplayBuffer(parent):
   """Wrapper of OutOfGraphReplayBuffer with an in graph sampling mechanism."""
 
   def __init__(self,

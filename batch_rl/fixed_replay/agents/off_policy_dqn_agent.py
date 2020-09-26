@@ -64,7 +64,6 @@ class FixedReplayOffPolicyDQNAgent(dqn_agent.DQNAgent):
     self.action = self._select_action()
     return self.action
 
-
   def end_episode(self, reward):
     assert self.eval_mode, 'Eval mode is not set to be True.'
     super(FixedReplayOffPolicyDQNAgent, self).end_episode(reward)
@@ -85,16 +84,16 @@ class FixedReplayOffPolicyDQNAgent(dqn_agent.DQNAgent):
   def _build_reward_op(self):
       off = self.epsilon_eval / self.num_actions
       on = (1 - self.epsilon_eval) + off
-
       s = self._replay.transition['traj_state']
       a = self._replay.transition['traj_action']
       r = self._replay.transition['traj_reward']
-      p = self._replay.transition['traj_states']
+      p = self._replay.transition['traj_prob']
       gamma = self._replay.transition['traj_discount']
 
-      flat_s = tf.reshape(s, shape=(-1,) + self.observation_shape)       # b*h x 84 x 84 x 4
-      flat_qs = tf.stop_gradient(self.target_convnet(flat_s))            # b*h x num_actions
-      flat_qmax = tf.argmax(flat_qs, axis=1)                             # b*h
+      state_shape = self.observation_shape + (self.stack_size,)
+      flat_s = tf.reshape(s, shape=(-1,) + state_shape)                 # b*h x 84 x 84 x 4
+      flat_qs = tf.stop_gradient(self.target_convnet(flat_s).q_values)  # b*h x num_actions
+      flat_qmax = tf.argmax(flat_qs, axis=1)                            # b*h
       flat_pi = tf.one_hot(flat_qmax, depth=self.num_actions, axis=-1, on_value=on, off_value=off)  # b*h x num_actions
 
       flat_a = tf.reshape(a, (-1,))
@@ -105,38 +104,6 @@ class FixedReplayOffPolicyDQNAgent(dqn_agent.DQNAgent):
       importance_weights = behavior_probs / p                                      #b x h
       w = tf.math.cumprod(importance_weights, axis=1)                              #b x h
       return tf.reduce_sum(gamma * w * r, axis=1)                                  #b
-
-
-  def _build_networks(self):
-    """Builds the Q-value network computations needed for acting and training.
-
-    These are:
-      self.online_convnet: For computing the current state's Q-values.
-      self.target_convnet: For computing the next state's target Q-values.
-      self._net_outputs: The actual Q-values.
-      self._q_argmax: The action maximizing the current state's Q-values.
-      self._replay_net_outputs: The replayed states' Q-values.
-      self._replay_next_target_net_outputs: The replayed next states' target
-        Q-values (see Mnih et al., 2015 for details).
-    """
-
-    # TODO(nikosk): Code seems correct for our case.
-    # TODO(nikosk): Delete and use base version once verified
-
-    # _network_template instantiates the model and returns the network object.
-    # The network object can be used to generate different outputs in the graph.
-    # At each call to the network, the parameters will be reused.
-    self.online_convnet = self._create_network(name='Online')
-    self.target_convnet = self._create_network(name='Target')
-    self._net_outputs = self.online_convnet(self.state_ph)
-    # TODO(bellemare): Ties should be broken. They are unlikely to happen when
-    # using a deep network, but may affect performance with a linear
-    # approximation scheme.
-    self._q_argmax = tf.argmax(self._net_outputs.q_values, axis=1)[0]
-    self._replay_net_outputs = self.online_convnet(self._replay.states)
-    self._replay_next_target_net_outputs = self.target_convnet(
-        self._replay.next_states)
-
 
 
   def _build_target_q_op(self):
@@ -160,27 +127,3 @@ class FixedReplayOffPolicyDQNAgent(dqn_agent.DQNAgent):
     r = self._build_reward_op()
     return r + self.cumulative_gamma * replay_next_qt_max * (
         1. - tf.cast(self._replay.terminals, tf.float32))
-
-
-  def _build_train_op(self):
-    # TODO: verify it's correct
-    """Builds a training op.
-
-    Returns:
-      train_op: An op performing one step of training from replay data.
-    """
-
-    replay_action_one_hot = tf.one_hot(
-        self._replay.actions, self.num_actions, 1., 0., name='action_one_hot')
-    replay_chosen_q = tf.reduce_sum(
-        self._replay_net_outputs.q_values * replay_action_one_hot,
-        axis=1,
-        name='replay_chosen_q')
-
-    target = tf.stop_gradient(self._build_target_q_op())
-    loss = tf.compat.v1.losses.huber_loss(
-        target, replay_chosen_q, reduction=tf.losses.Reduction.NONE)
-    if self.summary_writer is not None:
-      with tf.compat.v1.variable_scope('Losses'):
-        tf.compat.v1.summary.scalar('HuberLoss', tf.reduce_mean(loss))
-    return self.optimizer.minimize(tf.reduce_mean(loss))

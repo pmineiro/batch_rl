@@ -52,8 +52,10 @@ class FixedReplayRunnerIntegrationTest(tf.test.TestCase):
         'FixedReplayRunner.max_steps_per_episode=100',
     ]
     FLAGS.alsologtostderr = True
-    FLAGS.gin_files = ['batch_rl/fixed_replay/configs/rem.gin']
-    FLAGS.agent_name = 'multi_head_dqn'
+    # FLAGS.gin_files = ['batch_rl/fixed_replay/configs/rem.gin']
+    # FLAGS.agent_name = 'multi_head_dqn'
+    FLAGS.gin_files = ['batch_rl/fixed_replay/configs/off_policy_dqn.gin']
+    FLAGS.agent_name = 'off_policy_dqn'
 
   def verifyFilesCreated(self, base_dir):
     """Verify that files have been created."""

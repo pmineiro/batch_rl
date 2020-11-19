@@ -5,11 +5,45 @@ This fork is meant to work together with [my dopamine fork](https://github.com/n
 To get started: 
 - In a directory `atari` clone both this fork and my dopamine fork
 - docker pull justnikos/batchrl 
-- Start a docker container with this image that mounts the `atari` directory so that it is accessible inside the container.
+- Start a docker container with this image that mounts the `atari` directory so that it is accessible inside the container. I start my container like this
+```
+sudo docker run -d -ti --name nikos --volume="$HOME/.Xauthority:/root/.Xauthority:rw" --env="DISPLAY" --net=host -v /tmp/.X11-unix:/tmp/.X11-unix -v $HOME:/root justnikos/batchrl /bin/bash
+```
+Then I create shells like this
+```
+sudo docker exec -ti nikos /bin/bash
+```
+The reason is I can run pycharm to edit the projects which helps a lot when you are working on someone else's code
+```
+pycharm-community &
+```
 - Create a venv for this project (always a good idea)
 - activate the venv (`source venv/bin/activate`)
 - Go to the dopamine repo and pip install it as editable (find where setup.py resides and do `pip install -e .`)
-- Now any changes in our dopamine fork will be reflected immediately in batch_rl 
+- Now any changes in our dopamine fork will be reflected immediately in batch_rl (assuming we never forget activate the venv)
+- Download data from atarilogs azure blob (below I'm assuming they end up under $HOME/breakout $HOME/seaquest)
+- Some useful commands:
+Test everything is installed correctly
+```
+python -um batch_rl.tests.fixed_replay_runner_test --replay_dir=$HOME/breakout
+```
+Run the batch dqn agent
+```
+python -um batch_rl.fixed_replay.train --base_dir=/tmp/breakout/dqn --replay_dir=$HOME/breakout --gin_files=batch_rl/fixed_replay/configs/dqn.gin
+```
+Run the rem agent
+```
+python -um batch_rl.fixed_replay.train --base_dir=/tmp/breakout/rem --replay_dir=$HOME/breakout --gin_files=batch_rl/fixed_replay/configs/rem.gin --agent_name=multi_head_dqn
+```
+Run our agent
+```
+python -um batch_rl.fixed_replay.train --base_dir=/tmp/breakout/opdqn --replay_dir=$HOME/breakout --gin_files=batch_rl/fixed_replay/configs/off_policy_dqn.gin --agent_name=off_policy_dqn
+```
+You can start a tensorboard to monitor the experiments. Forward port 6006 and do
+```
+tensorboard --logdir /tmp/breakout/
+```
+Now you should see stuff if you go to localhost:6006. It takes a while for the first actual datapoints to appear. 
 
 # An Optimistic Perspective on Offline Reinforcement Learning (ICML, 2020)
 

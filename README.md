@@ -29,7 +29,7 @@ python -m venv --system-site-packages venv
 az storage blob download-batch --account-name atarilogs -s batchrl -d $HOME
 ```
 plus any sas tokens/connection strings you need.
-- Some useful commands:
+- Some useful commands (assuming you are in atari/batch_rl and you have activated the venv):
 Test everything is installed correctly
 ```
 python -um batch_rl.tests.fixed_replay_runner_test --replay_dir=$HOME/breakout

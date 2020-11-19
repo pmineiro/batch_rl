@@ -17,9 +17,12 @@ The reason is I can run pycharm to edit the projects which helps a lot when you 
 ```
 pycharm-community &
 ```
-- Create a venv for this project (always a good idea)
+- Create a venv for this project (always a good idea). Here it important to give access to already installed stuff in the docker
+```
+python -m venv --system-site-packages venv
+```
 - activate the venv (`source venv/bin/activate`)
-- Go to the dopamine repo and pip install it as editable (find where setup.py resides and do `pip install -e .`)
+- Go to the dopamine repo and pip install it as editable (find where setup.py resides (typically at the repo root) and do `pip install -e .`)
 - Now any changes in our dopamine fork will be reflected immediately in batch_rl (assuming we never forget activate the venv)
 - Download data from atarilogs azure blob (below I'm assuming they end up under $HOME/breakout $HOME/seaquest)
 - Some useful commands:

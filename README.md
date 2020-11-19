@@ -25,6 +25,10 @@ python -m venv --system-site-packages venv
 - Go to the dopamine repo and pip install it as editable (find where setup.py resides (typically at the repo root) and do `pip install -e .`)
 - Now any changes in our dopamine fork will be reflected immediately in batch_rl (assuming we never forget activate the venv)
 - Download data from atarilogs azure blob (below I'm assuming they end up under $HOME/breakout $HOME/seaquest)
+```
+az storage blob download-batch --account-name atarilogs -s batchrl -d $HOME
+```
+plus any sas tokens/connection strings you need.
 - Some useful commands:
 Test everything is installed correctly
 ```

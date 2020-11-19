@@ -102,7 +102,9 @@ class FixedReplayOffPolicyDQNAgent(dqn_agent.DQNAgent):
       flat_behavior_probs = tf.boolean_mask(flat_pi, action_mask)                  #b*h
       behavior_probs = tf.reshape(flat_behavior_probs, (-1, self.update_horizon))  #b x h
       importance_weights = behavior_probs / p                                      #b x h
+      importance_weights = tf.clip_by_value(importance_weights, 0.99, 1.01)
       w = tf.math.cumprod(importance_weights, axis=1)                              #b x h
+      #q = tf.numpy_func(...)
       return tf.reduce_sum(gamma * w * r, axis=1)                                  #b
 
 

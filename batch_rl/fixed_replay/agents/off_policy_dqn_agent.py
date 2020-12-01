@@ -12,6 +12,8 @@ import os
 
 from batch_rl.fixed_replay.replay_memory import fixed_replay_buffer
 from dopamine.agents.dqn import dqn_agent
+import batch_rl.fixed_replay.agents.incrementalwrbetting as ib
+import batch_rl.fixed_replay.agents.mle as mle
 import gin
 import tensorflow.compat.v1 as tf
 
@@ -48,6 +50,8 @@ class FixedReplayOffPolicyDQNAgent(dqn_agent.DQNAgent):
           init_checkpoint_dir, 'checkpoints')
     else:
       self._init_checkpoint_dir = None
+    self.mle = mle.MLE()
+    self.ib = ib.IncrementalWRBetting(decay=0.99999)
     super(FixedReplayOffPolicyDQNAgent, self).__init__(sess, num_actions, **kwargs)
 
   def step(self, reward, observation):
@@ -101,11 +105,18 @@ class FixedReplayOffPolicyDQNAgent(dqn_agent.DQNAgent):
 
       flat_behavior_probs = tf.boolean_mask(flat_pi, action_mask)                  #b*h
       behavior_probs = tf.reshape(flat_behavior_probs, (-1, self.update_horizon))  #b x h
-      importance_weights = behavior_probs / p                                      #b x h
-      importance_weights = tf.clip_by_value(importance_weights, 0.99, 1.01)
+      # TODO: try p = 1/|A|
+
+      flassimp = behavior_probs / p                                      #b x h
+      # NB: tensorflow sucks
+      def assign_ones(w):
+          w[:, 0] = 1
+          return w
+      importance_weights = tf.numpy_function(assign_ones, [ flassimp ], tf.float32)
       w = tf.math.cumprod(importance_weights, axis=1)                              #b x h
-      #q = tf.numpy_func(...)
-      return tf.reduce_sum(gamma * w * r, axis=1)                                  #b
+      #q = tf.numpy_function(lambda *args: self.mle.tfhook(*args), [ gamma, w, r ], tf.float32)
+      q = tf.numpy_function(lambda *args: self.ib.tfhook(*args), [ gamma, w, r ], tf.float32)
+      return q * tf.reduce_sum(gamma * w * r, axis=1)                              #b
 
 
   def _build_target_q_op(self):

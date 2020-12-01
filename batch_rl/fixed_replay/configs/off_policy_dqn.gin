@@ -8,7 +8,7 @@ import batch_rl.fixed_replay.agents.off_policy_dqn_agent
 import gin.tf.external_configurables
 
 FixedReplayOffPolicyDQNAgent.gamma = 0.99
-FixedReplayOffPolicyDQNAgent.update_horizon = 5
+FixedReplayOffPolicyDQNAgent.update_horizon = 2
 FixedReplayOffPolicyDQNAgent.min_replay_history = 20000  # agent steps
 FixedReplayOffPolicyDQNAgent.update_period = 4
 FixedReplayOffPolicyDQNAgent.target_update_period = 8000  # agent steps
@@ -17,13 +17,16 @@ FixedReplayOffPolicyDQNAgent.epsilon_eval = 0.001
 FixedReplayOffPolicyDQNAgent.epsilon_decay_period = 250000  # agent steps
 FixedReplayOffPolicyDQNAgent.tf_device = '/gpu:0'
 # FixedReplayOffPolicyDQNAgent.tf_device = '/cpu:*'
-FixedReplayOffPolicyDQNAgent.optimizer = @tf.train.RMSPropOptimizer()
+FixedReplayOffPolicyDQNAgent.optimizer = @tf.train.AdamOptimizer()
 
 tf.train.RMSPropOptimizer.learning_rate = 0.00025
 tf.train.RMSPropOptimizer.decay = 0.95
 tf.train.RMSPropOptimizer.momentum = 0.0
 tf.train.RMSPropOptimizer.epsilon = 0.00001
 tf.train.RMSPropOptimizer.centered = True
+
+tf.train.AdamOptimizer.learning_rate = 0.00005
+tf.train.AdamOptimizer.epsilon = 0.0003125
 
 atari_lib.create_atari_environment.game_name = 'Breakout'
 # Sticky actions with probability 0.25, as suggested by (Machado et al., 2017).

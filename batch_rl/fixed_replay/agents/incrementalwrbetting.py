@@ -50,4 +50,3 @@ class IncrementalWRBetting:
         varwr = sqrt(max(0, self.sumwrsq / max(1, self.n) - meanwr**2))
         vadj = max(0, meanwr - 3 * varwr / sqrt(max(1, self.n)))
         return vadj
-

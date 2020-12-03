@@ -1,7 +1,7 @@
 class MLE:
   def __init__(self):
       self.wmax = 2
-  
+
   def tfhook(self, gamma, w, r):
       import numpy as np
       from scipy import optimize

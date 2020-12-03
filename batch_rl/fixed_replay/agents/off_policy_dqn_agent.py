@@ -104,9 +104,7 @@ class FixedReplayOffPolicyDQNAgent(dqn_agent.DQNAgent):
       action_mask = tf.one_hot(flat_a, depth=self.num_actions, dtype=tf.bool, on_value=True, off_value=False)
       flat_behavior_probs = tf.boolean_mask(flat_pi, action_mask)                  #b*h
       behavior_probs = tf.reshape(flat_behavior_probs, (-1, self.update_horizon))  #b x h
-
       flassimp = behavior_probs / p                                      #b x h
-
       # NB: tensorflow sucks
       def assign_ones(w):
           w[:, 0] = 1
@@ -115,7 +113,7 @@ class FixedReplayOffPolicyDQNAgent(dqn_agent.DQNAgent):
       w = tf.math.cumprod(importance_weights, axis=1)                              #b x h
       #q = tf.numpy_function(lambda *args: self.mle.tfhook(*args), [ gamma, w, r ], tf.float32)
       q = tf.numpy_function(lambda *args: self.ib.tfhook(*args), [ gamma, w, r ], tf.float32)
-      return q * tf.reduce_sum(gamma * w * r, axis=1)                                  #b
+      return q * tf.reduce_sum(gamma * w * r, axis=1)                              #b
 
   def _build_target_q_op(self):
     # TODO: include actual trajectory length in the transition so we don't use the wrong cumulative_gamma

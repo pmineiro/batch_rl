@@ -11,6 +11,8 @@ from __future__ import print_function
 import os
 
 from batch_rl.fixed_replay.replay_memory import fixed_replay_buffer
+from batch_rl.fixed_replay.agents import incrementalwrbetting as ib
+from batch_rl.fixed_replay.agents import mle as mle
 from dopamine.agents.dqn import dqn_agent
 import gin
 import tensorflow.compat.v1 as tf
@@ -48,6 +50,8 @@ class FixedReplayOffPolicyDQNAgent(dqn_agent.DQNAgent):
           init_checkpoint_dir, 'checkpoints')
     else:
       self._init_checkpoint_dir = None
+    self.mle = mle.MLE()
+    self.ib = ib.IncrementalWRBetting(decay=0.99999)
     super(FixedReplayOffPolicyDQNAgent, self).__init__(sess, num_actions, **kwargs)
 
   def step(self, reward, observation):
@@ -98,15 +102,20 @@ class FixedReplayOffPolicyDQNAgent(dqn_agent.DQNAgent):
 
       flat_a = tf.reshape(a, (-1,))
       action_mask = tf.one_hot(flat_a, depth=self.num_actions, dtype=tf.bool, on_value=True, off_value=False)
-
       flat_behavior_probs = tf.boolean_mask(flat_pi, action_mask)                  #b*h
       behavior_probs = tf.reshape(flat_behavior_probs, (-1, self.update_horizon))  #b x h
-      importance_weights = behavior_probs / p                                      #b x h
-      importance_weights = tf.clip_by_value(importance_weights, 0.99, 1.01)
-      w = tf.math.cumprod(importance_weights, axis=1)                              #b x h
-      #q = tf.numpy_func(...)
-      return tf.reduce_sum(gamma * w * r, axis=1)                                  #b
 
+      flassimp = behavior_probs / p                                      #b x h
+
+      # NB: tensorflow sucks
+      def assign_ones(w):
+          w[:, 0] = 1
+          return w
+      importance_weights = tf.numpy_function(assign_ones, [ flassimp ], tf.float32)
+      w = tf.math.cumprod(importance_weights, axis=1)                              #b x h
+      #q = tf.numpy_function(lambda *args: self.mle.tfhook(*args), [ gamma, w, r ], tf.float32)
+      q = tf.numpy_function(lambda *args: self.ib.tfhook(*args), [ gamma, w, r ], tf.float32)
+      return q * tf.reduce_sum(gamma * w * r, axis=1)                                  #b
 
   def _build_target_q_op(self):
     # TODO: include actual trajectory length in the transition so we don't use the wrong cumulative_gamma

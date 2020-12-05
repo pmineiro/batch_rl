@@ -1,5 +1,5 @@
 class IncrementalWRBetting:
-    def __init__(self, decay, taumax=0.25):
+    def __init__(self, decay, taumax=0.99):
         from math import floor, log
         assert 0 < decay <= 1
         self.decay = decay

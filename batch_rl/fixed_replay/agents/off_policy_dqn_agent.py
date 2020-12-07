@@ -12,6 +12,7 @@ import os
 
 from batch_rl.fixed_replay.replay_memory import fixed_replay_buffer
 from batch_rl.fixed_replay.agents import iwlb as iwlb
+from batch_rl.fixed_replay.agents import incrementaliwlb as incriwlb
 from batch_rl.fixed_replay.agents import incrementalwrbetting as ib
 from batch_rl.fixed_replay.agents import mle as mle
 from dopamine.agents.dqn import dqn_agent
@@ -51,10 +52,14 @@ class FixedReplayOffPolicyDQNAgent(dqn_agent.DQNAgent):
           init_checkpoint_dir, 'checkpoints')
     else:
       self._init_checkpoint_dir = None
+    decay = kwargs.pop('decay')
+    nbatches = kwargs.pop('nbatches')
+    coverage = kwargs.pop('coverage')
     super(FixedReplayOffPolicyDQNAgent, self).__init__(sess, num_actions, **kwargs)
     self.mle = mle.MLE()
-    self.ib = ib.IncrementalWRBetting(decay=0.99999)
-    self.iwlb = iwlb.IwLb(coverage=0.9)
+    self.ib = ib.IncrementalWRBetting(decay=decay)
+    self.iwlb = iwlb.IwLb(coverage=coverage)
+    self.incriwlb = incriwlb.IncrementalIwLb(coverage=coverage, nbatches=nbatches)
 
   def step(self, reward, observation):
     """Records the most recent transition and returns the agent's next action.
@@ -115,10 +120,11 @@ class FixedReplayOffPolicyDQNAgent(dqn_agent.DQNAgent):
       w = tf.math.cumprod(importance_weights, axis=1)                              #b x h
       #q = tf.numpy_function(lambda *args: self.mle.tfhook(*args), [ gamma, w, r ], tf.float32)
       #q = tf.numpy_function(lambda *args: self.ib.tfhook(*args), [ gamma, w, r ], tf.float32)
-      q = tf.numpy_function(lambda *args: self.iwlb.tfhook(*args), [ gamma, w, r ], tf.float32)
+      #q = tf.numpy_function(lambda *args: self.iwlb.tfhook(*args), [ gamma, w, r ], tf.float32)
+      q = tf.numpy_function(lambda *args: self.incriwlb.tfhook(*args), [ gamma, w, r ], tf.float32)
 
       if self.summary_writer is not None:
-        duals = tf.numpy_function(lambda *args: self.iwlb.dualstfhook(*args), [ ], tf.float32)
+        duals = tf.numpy_function(lambda *args: self.incriwlb.dualstfhook(*args), [ ], tf.float32)
         with tf.compat.v1.variable_scope('Duals'):
           tf.compat.v1.summary.scalar('v', duals[0])
           tf.compat.v1.summary.scalar('alpha', duals[1])

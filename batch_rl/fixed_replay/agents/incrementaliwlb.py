@@ -12,11 +12,6 @@ class IncrementalIwLb:
         
         return np.array([ self.vhat, self.alphastar, self.kappastar ]).astype(np.single)
     
-    def getmaxibatch(self):
-        for batch in self.batches:
-            for wdotr in batch:
-                yield wdotr
-    
     def tfhook(self, g, w, r):
         from scipy.stats import f
         from scipy import optimize
@@ -30,8 +25,8 @@ class IncrementalIwLb:
         
         def kappa(alpha):
             from math import fsum, log, exp
-            return exp(phi + fsum((1/N) * log(alpha + wdotr) for wdotr in self.getmaxibatch()))
-        
+            return exp(phi + (1/N) * fsum(log(alpha + wdotr) for v in self.batches for wdotr in v))
+
         def dual(alpha):
             return alpha - kappa(alpha)
         
@@ -43,4 +38,3 @@ class IncrementalIwLb:
         self.kappastar = kappa(self.alphastar)
         
         return np.array([ self.kappastar / (self.alphastar + wn.dot(gn * rn)) for gn, wn, rn in zip(g, w, r) ]).astype(np.single)
-

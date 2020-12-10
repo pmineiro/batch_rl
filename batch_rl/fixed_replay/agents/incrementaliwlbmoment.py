@@ -1,4 +1,4 @@
-# Low-precision solve w/custom Newton
+# Low-precision solve w/custom Newton + custom detection of betastar=0
 class IncrementalIwLbMoment:
     @staticmethod
     def newtonOpt(f, g, H, proj, x0, xtol=1e-6, maxiter=100):
@@ -17,8 +17,10 @@ class IncrementalIwLbMoment:
 #             print(f'x {x} fx {fx} gx {gx} xnew {xnew} fxnew {fxnew}')
             while (np.linalg.norm(dx) > xtol and fxnew < fx):
                 dx *= 0.5
+                xnewold = xnew
                 xnew = proj(x - dx)
-                fxnew = f(xnew)
+                if not np.allclose(xnew, xnewold):
+                    fxnew = f(xnew)
 #                 print(f'backtrack x {x} fx {fx} xnew {xnew} fxnew {fxnew}')
 
             if fxnew < fx:
@@ -57,60 +59,65 @@ class IncrementalIwLbMoment:
         self.batches.append( [ (np.sum(wn)/H, wn.dot(gn * rn)) for gn, wn, rn in zip(g, w, r) ] )
 
         N = len(self.batches) * g.shape[0]
-
-        def negmle(beta):
-            from math import log
-            return -(1/N) * fsum(log(1 + beta * (wdotone - 1)) for v in self.batches for wdotone, wdotr in v)
-
-        res = optimize.minimize_scalar(fun=negmle, method='bounded', bounds=(1e-6, 1 - 1e-6))
-        likelihood = -res.fun
-
         Delta = 0.5 * f.isf(q=1.0-self.coverage, dfn=1, dfd=N-1) / N
-        phi = -Delta - likelihood
+        phi = -Delta
 
         def kappa(alpha, beta):
             from math import log, exp
             return exp(phi + (1/N) * fsum(log(alpha + beta * wdotone + wdotr) for v in self.batches for wdotone, wdotr in v))
 
-        def gradlogkappa(alpha, beta):
-            from math import log
-            return ( (1/N) * fsum(1 / (alpha + beta * wdotone + wdotr) for v in self.batches for wdotone, wdotr in v),
-                     (1/N) * fsum(wdotone / (alpha + beta * wdotone + wdotr) for v in self.batches for wdotone, wdotr in v)
-                   )
+        if fsum(wdotone for v in self.batches for wdotone, wdotr in v) < N: # assume betastar = 0
+            res = optimize.minimize_scalar(fun=lambda alpha: alpha - kappa(alpha, 0), method='bounded', bounds=(1e-6, N))
+            self.alphastar, self.betastar = res.x, 0
+            self.kappastar = kappa(self.alphastar, self.betastar)
+            self.vhat = -res.fun
+        else: # betastar >= 0
+            def negmle(beta):
+                from math import log
+                return -(1/N) * fsum(log(1 + beta * (wdotone - 1)) for v in self.batches for wdotone, wdotr in v)
 
-        def gradgradlogkappa(alpha, beta):
-            from math import log
-            return ( -(1/N) * fsum(1 / (alpha + beta * wdotone + wdotr)**2 for v in self.batches for wdotone, wdotr in v),
-                     -(1/N) * fsum(wdotone / (alpha + beta * wdotone + wdotr)**2 for v in self.batches for wdotone, wdotr in v),
-                     -(1/N) * fsum(wdotone**2 / (alpha + beta * wdotone + wdotr)**2 for v in self.batches for wdotone, wdotr in v)
-                   )
+            res = optimize.minimize_scalar(fun=negmle, method='bounded', bounds=(1e-6, 1 - 1e-6))
+            phi += res.fun
 
-        def dual(x):
-            return - x[0] - x[1] + kappa(x[0], x[1])
+            def gradlogkappa(alpha, beta):
+                from math import log
+                return ( (1/N) * fsum(1 / (alpha + beta * wdotone + wdotr) for v in self.batches for wdotone, wdotr in v),
+                         (1/N) * fsum(wdotone / (alpha + beta * wdotone + wdotr) for v in self.batches for wdotone, wdotr in v)
+                       )
 
-        def jacdual(x):
-            dakappa = kappa(x[0], x[1])
-            gloga, glogb = gradlogkappa(x[0], x[1])
+            def gradgradlogkappa(alpha, beta):
+                from math import log
+                return ( -(1/N) * fsum(1 / (alpha + beta * wdotone + wdotr)**2 for v in self.batches for wdotone, wdotr in v),
+                         -(1/N) * fsum(wdotone / (alpha + beta * wdotone + wdotr)**2 for v in self.batches for wdotone, wdotr in v),
+                         -(1/N) * fsum(wdotone**2 / (alpha + beta * wdotone + wdotr)**2 for v in self.batches for wdotone, wdotr in v)
+                       )
 
-            return [ -1 + dakappa * gloga, -1 + dakappa * glogb ]
+            def dual(x):
+                return - x[0] - x[1] + kappa(x[0], x[1])
 
-        def hessdual(x):
-            dakappa = kappa(x[0], x[1])
-            gloga, glogb = gradlogkappa(x[0], x[1])
-            gglogaa, gglogab, gglogbb = gradgradlogkappa(x[0], x[1])
+            def jacdual(x):
+                dakappa = kappa(x[0], x[1])
+                gloga, glogb = gradlogkappa(x[0], x[1])
 
-            return [ [ dakappa * (gglogaa + gloga**2), dakappa * (gglogab + gloga * glogb) ],
-                     [ dakappa * (gglogab + glogb * gloga), dakappa * (gglogbb + glogb**2) ]
-                   ]
+                return [ -1 + dakappa * gloga, -1 + dakappa * glogb ]
 
-        x, fx = IncrementalIwLbMoment.newtonOpt(f=dual,
-                                                g=jacdual,
-                                                H=hessdual,
-                                                proj=lambda x: np.clip(x, a_min=[1e-6, 0], a_max=None),
-                                                x0 = np.array([ 1.0, 0.0 ]))
+            def hessdual(x):
+                dakappa = kappa(x[0], x[1])
+                gloga, glogb = gradlogkappa(x[0], x[1])
+                gglogaa, gglogab, gglogbb = gradgradlogkappa(x[0], x[1])
 
-        self.alphastar, self.betastar = x
-        self.kappastar = kappa(self.alphastar, self.betastar)
-        self.vhat = fx
+                return [ [ dakappa * (gglogaa + gloga**2), dakappa * (gglogab + gloga * glogb) ],
+                         [ dakappa * (gglogab + glogb * gloga), dakappa * (gglogbb + glogb**2) ]
+                       ]
+
+            x, fx = IncrementalIwLbMoment.newtonOpt(f=dual,
+                                                    g=jacdual,
+                                                    H=hessdual,
+                                                    proj=lambda x: np.clip(x, a_min=[1e-6, 0], a_max=None),
+                                                    x0 = np.array([ 1.0, 0.0 ]))
+
+            self.alphastar, self.betastar = x
+            self.kappastar = kappa(self.alphastar, self.betastar)
+            self.vhat = fx
 
         return np.array([ self.kappastar / (self.alphastar + self.betastar * np.sum(wn)/H + wn.dot(gn * rn)) for gn, wn, rn in zip(g, w, r) ]).astype(np.single)

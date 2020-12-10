@@ -141,13 +141,26 @@ class PrioritizedFixedReplayBuffer(object):
 
   def sample_transition_batch(self, batch_size=None, indices=None):
     assert indices is None
+    for _ in range(10):
+      # rarely, i get an exception that an index has not been added (?)
+      try:
+        buffer_index = np.random.randint(self._num_replay_buffers)
+        rb = self._replay_buffers[buffer_index]
+        batch_size = rb._batch_size if batch_size is None else batch_size
+        indices = rb._sum_tree.stratified_sample(batch_size)
+        tb = rb.sample_transition_batch(batch_size=batch_size, indices=indices)
+        probs = np.array(rb._sum_tree.get(indices))
+        return tb + (probs.astype(np.single), )
+      except:
+        pass
+
+    # shrug ... just do a uniform sample
     buffer_index = np.random.randint(self._num_replay_buffers)
     rb = self._replay_buffers[buffer_index]
     batch_size = rb._batch_size if batch_size is None else batch_size
-    indices = rb._sum_tree.stratified_sample(batch_size)
-    tb = rb.sample_transition_batch(batch_size=batch_size, indices=indices)
-    probs = np.array(rb._sum_tree.get(indices))
-    return tb + (probs.astype(np.single), )
+    tb = rb.sample_transition_batch(batch_size=batch_size)
+    probs = np.ones(batch_size)
+    return tb + (probs.astype(np.single),)
 
   def load(self, *args, **kwargs):  # pylint: disable=unused-argument
     pass

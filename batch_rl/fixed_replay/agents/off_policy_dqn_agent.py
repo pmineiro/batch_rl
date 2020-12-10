@@ -13,6 +13,7 @@ import os
 from batch_rl.fixed_replay.replay_memory import fixed_replay_buffer
 from batch_rl.fixed_replay.agents import iwlb as iwlb
 from batch_rl.fixed_replay.agents import incrementaliwlb as incriwlb
+from batch_rl.fixed_replay.agents import incrementaliwlbmoment as iiwlbmom
 from batch_rl.fixed_replay.agents import incrementalwrbetting as ib
 from batch_rl.fixed_replay.agents import mle as mle
 from dopamine.agents.dqn import dqn_agent
@@ -60,6 +61,7 @@ class FixedReplayOffPolicyDQNAgent(dqn_agent.DQNAgent):
     self.ib = ib.IncrementalWRBetting(decay=decay)
     self.iwlb = iwlb.IwLb(coverage=coverage)
     self.incriwlb = incriwlb.IncrementalIwLb(coverage=coverage, nbatches=nbatches)
+    self.iiwlbmom = iiwlbmom.IncrementalIwLbMoment(coverage=coverage, nbatches=nbatches)
 
   def step(self, reward, observation):
     """Records the most recent transition and returns the agent's next action.
@@ -121,14 +123,16 @@ class FixedReplayOffPolicyDQNAgent(dqn_agent.DQNAgent):
       #q = tf.numpy_function(lambda *args: self.mle.tfhook(*args), [ gamma, w, r ], tf.float32)
       #q = tf.numpy_function(lambda *args: self.ib.tfhook(*args), [ gamma, w, r ], tf.float32)
       #q = tf.numpy_function(lambda *args: self.iwlb.tfhook(*args), [ gamma, w, r ], tf.float32)
-      q = tf.numpy_function(lambda *args: self.incriwlb.tfhook(*args), [ gamma, w, r ], tf.float32)
+      #q = tf.numpy_function(lambda *args: self.incriwlb.tfhook(*args), [ gamma, w, r ], tf.float32)
+      q = tf.numpy_function(lambda *args: self.iiwlbmom.tfhook(*args), [ gamma, w, r ], tf.float32)
 
       if self.summary_writer is not None:
-        duals = tf.numpy_function(lambda *args: self.incriwlb.dualstfhook(*args), [ ], tf.float32)
+        duals = tf.numpy_function(lambda *args: self.iiwlbmom.dualstfhook(*args), [ ], tf.float32)
         with tf.compat.v1.variable_scope('Duals'):
           tf.compat.v1.summary.scalar('v', duals[0])
           tf.compat.v1.summary.scalar('alpha', duals[1])
-          tf.compat.v1.summary.scalar('kappa', duals[2])
+          tf.compat.v1.summary.scalar('beta', duals[2])
+          tf.compat.v1.summary.scalar('kappa', duals[3])
 
       return q * tf.reduce_sum(gamma * w * r, axis=1)                              #b
 

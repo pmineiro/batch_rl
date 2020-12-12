@@ -21,6 +21,7 @@ FixedReplayOffPolicyDQNAgent.optimizer = @tf.train.AdamOptimizer()
 FixedReplayOffPolicyDQNAgent.decay = 0.99999
 FixedReplayOffPolicyDQNAgent.nbatches = 32
 FixedReplayOffPolicyDQNAgent.coverage = 0.9
+FixedReplayOffPolicyDQNAgent.sarsa = True
 
 tf.train.RMSPropOptimizer.learning_rate = 0.00025
 tf.train.RMSPropOptimizer.decay = 0.95

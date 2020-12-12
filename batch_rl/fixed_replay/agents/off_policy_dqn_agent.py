@@ -56,6 +56,7 @@ class FixedReplayOffPolicyDQNAgent(dqn_agent.DQNAgent):
     decay = kwargs.pop('decay')
     nbatches = kwargs.pop('nbatches')
     coverage = kwargs.pop('coverage')
+    self.sarsa = kwargs.pop('sarsa')
     super(FixedReplayOffPolicyDQNAgent, self).__init__(sess, num_actions, **kwargs)
     self.mle = mle.MLE()
     self.ib = ib.IncrementalWRBetting(decay=decay)
@@ -143,9 +144,17 @@ class FixedReplayOffPolicyDQNAgent(dqn_agent.DQNAgent):
     Returns:
       target_q_op: An op calculating the Q-value.
     """
-    # Get the maximum Q-value across the actions dimension.
-    replay_next_qt_max = tf.reduce_max(
-        self._replay_next_target_net_outputs.q_values, 1)
+    if self.sarsa:
+        flat_next_a = tf.reshape(self._replay.transition['next_action'], (-1,))
+        next_a_mask = tf.reshape(tf.one_hot(flat_next_a, depth=self.num_actions, axis=-1, on_value=True, off_value=False), (-1,))
+        flat_next_q = tf.reshape(self._replay_next_target_net_outputs.q_values, (-1,))
+        flat_target = tf.boolean_mask(flat_next_q, next_a_mask)
+        replay_next_qt_max = tf.reshape(flat_target, (-1, 1))
+    else:
+        replay_next_qt_max = tf.reduce_max(
+            self._replay_next_target_net_outputs.q_values, 1)
+
+
     # Calculate the Bellman target value.
     #   Q_t = R_t + \gamma^N * Q'_t+1
     # where,

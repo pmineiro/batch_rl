@@ -57,6 +57,7 @@ class FixedReplayBuffer(object):
     self._loaded_buffers = False
     self.add_count = np.array(0)
     self._replay_suffix = replay_suffix
+    self._maxbuffernum = kwargs.pop('maxbuffernum')
     while not self._loaded_buffers:
       if replay_suffix:
         assert replay_suffix >= 0, 'Please pass a non-negative replay suffix'
@@ -101,6 +102,8 @@ class FixedReplayBuffer(object):
       # Should contain the files for add_count, action, observation, reward,
       # terminal and invalid_range
       ckpt_suffixes = [x for x in ckpt_counters if ckpt_counters[x] in [6, 7]]
+      if self._maxbuffernum is not None:
+          ckpt_suffixes = [v for v in ckpt_suffixes if int(v) < self._maxbuffernum]
       if num_buffers is not None:
         ckpt_suffixes = np.random.choice(
             ckpt_suffixes, num_buffers, replace=False)
@@ -164,14 +167,16 @@ class WrappedFixedReplayBuffer(parent):
                action_shape=(),
                action_dtype=np.int32,
                reward_shape=(),
-               reward_dtype=np.float32):
+               reward_dtype=np.float32,
+               maxbuffernum=None):
     """Initializes WrappedFixedReplayBuffer."""
 
     memory = FixedReplayBuffer(
         data_dir, replay_suffix, observation_shape, stack_size, replay_capacity,
         batch_size, update_horizon, gamma, max_sample_attempts,
         extra_storage_types=extra_storage_types,
-        observation_dtype=observation_dtype)
+        observation_dtype=observation_dtype,
+        maxbuffernum=maxbuffernum)
 
     super(WrappedFixedReplayBuffer, self).__init__(
         observation_shape,

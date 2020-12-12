@@ -66,7 +66,7 @@ class IncrementalIwLbMoment:
             from math import log, exp
             return exp(phi + (1/N) * fsum(log(alpha + beta * wdotone + wdotr) for v in self.batches for wdotone, wdotr in v))
 
-        if fsum(wdotone for v in self.batches for wdotone, wdotr in v) < N: # assume betastar = 0
+        if fsum(wdotone for v in self.batches for wdotone, wdotr in v) <= N: # assume betastar = 0
             res = optimize.minimize_scalar(fun=lambda alpha: alpha - kappa(alpha, 0), method='bounded', bounds=(1e-6, N))
             self.alphastar, self.betastar = res.x, 0
             self.kappastar = kappa(self.alphastar, self.betastar)

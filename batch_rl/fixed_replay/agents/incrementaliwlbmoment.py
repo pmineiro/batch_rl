@@ -1,39 +1,5 @@
-# Low-precision solve w/custom Newton + custom detection of betastar=0
+# SLSQP + betastar=0 detection
 class IncrementalIwLbMoment:
-    @staticmethod
-    def newtonOpt(f, g, H, proj, x0, xtol=1e-6, maxiter=100):
-        x = proj(x0)
-        fx = f(x)
-        gx = g(x)
-        Hx = H(x)
-
-        for _ in range(maxiter):
-            import numpy as np
-
-            # gx + Hx dx = 0 => Hx dx = -gx
-            dx = np.linalg.lstsq(Hx, gx, rcond=None)[0]
-            xnew = proj(x - dx)
-            fxnew = f(xnew)
-#             print(f'x {x} fx {fx} gx {gx} xnew {xnew} fxnew {fxnew}')
-            while (np.linalg.norm(dx) > xtol and fxnew < fx):
-                dx *= 0.5
-                xnewold = xnew
-                xnew = proj(x - dx)
-                if not np.allclose(xnew, xnewold):
-                    fxnew = f(xnew)
-#                 print(f'backtrack x {x} fx {fx} xnew {xnew} fxnew {fxnew}')
-
-            if fxnew < fx:
-#                 print('bruh')
-                return x, fx
-
-            x = xnew
-            fx = fxnew
-            gx = g(x)
-            Hx = H(x)
-
-        return x, fx
-
     def __init__(self, coverage, nbatches):
         from collections import deque
         assert 0 <= coverage < 1
@@ -92,32 +58,23 @@ class IncrementalIwLbMoment:
                          -(1/N) * fsum(wdotone**2 / (alpha + beta * wdotone + wdotr)**2 for v in self.batches for wdotone, wdotr in v)
                        )
 
-            def dual(x):
-                return - x[0] - x[1] + kappa(x[0], x[1])
+            def negdual(x):
+                return x[0] + x[1] - kappa(x[0], x[1])
 
-            def jacdual(x):
+            def jacnegdual(x):
                 dakappa = kappa(x[0], x[1])
                 gloga, glogb = gradlogkappa(x[0], x[1])
 
-                return [ -1 + dakappa * gloga, -1 + dakappa * glogb ]
+                return [ 1 - dakappa * gloga, 1 - dakappa * glogb ]
 
-            def hessdual(x):
-                dakappa = kappa(x[0], x[1])
-                gloga, glogb = gradlogkappa(x[0], x[1])
-                gglogaa, gglogab, gglogbb = gradgradlogkappa(x[0], x[1])
-
-                return [ [ dakappa * (gglogaa + gloga**2), dakappa * (gglogab + gloga * glogb) ],
-                         [ dakappa * (gglogab + glogb * gloga), dakappa * (gglogbb + glogb**2) ]
-                       ]
-
-            x, fx = IncrementalIwLbMoment.newtonOpt(f=dual,
-                                                    g=jacdual,
-                                                    H=hessdual,
-                                                    proj=lambda x: np.clip(x, a_min=[1e-6, 0], a_max=None),
-                                                    x0 = np.array([ 1.0, 0.0 ]))
-
-            self.alphastar, self.betastar = x
+            res = optimize.minimize(fun=negdual,
+                                    jac=jacnegdual,
+                                    x0=(1.0, 0.0),
+                                    method='SLSQP',
+                                    bounds=[ (1e-6, None), (0.0, None) ],
+                                   )
+            self.alphastar, self.betastar = res.x
             self.kappastar = kappa(self.alphastar, self.betastar)
-            self.vhat = fx
+            self.vhat = -res.fun
 
         return np.array([ self.kappastar / (self.alphastar + self.betastar * np.sum(wn)/H + wn.dot(gn * rn)) for gn, wn, rn in zip(g, w, r) ]).astype(np.single)

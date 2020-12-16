@@ -22,6 +22,7 @@ FixedReplayOffPolicyDQNAgent.decay = 0.99999
 FixedReplayOffPolicyDQNAgent.nbatches = 32
 FixedReplayOffPolicyDQNAgent.coverage = 0.95
 FixedReplayOffPolicyDQNAgent.sarsa = False
+FixedReplayOffPolicyDQNAgent.uniform_propensities = False
 
 tf.train.RMSPropOptimizer.learning_rate = 0.00025
 tf.train.RMSPropOptimizer.decay = 0.95

@@ -57,6 +57,7 @@ class FixedReplayOffPolicyDQNAgent(dqn_agent.DQNAgent):
     nbatches = kwargs.pop('nbatches')
     coverage = kwargs.pop('coverage')
     self.sarsa = kwargs.pop('sarsa')
+    self.uniform_propensities = kwargs.pop('uniform_propensities')
     super(FixedReplayOffPolicyDQNAgent, self).__init__(sess, num_actions, **kwargs)
     self.mle = mle.MLE()
     self.ib = ib.IncrementalWRBetting(decay=decay)
@@ -101,7 +102,10 @@ class FixedReplayOffPolicyDQNAgent(dqn_agent.DQNAgent):
       s = self._replay.transition['traj_state']
       a = self._replay.transition['traj_action']
       r = self._replay.transition['traj_reward']
-      p = self._replay.transition['traj_prob']
+      if self.uniform_propensities:
+          p = tf.constant(1.0 / self.num_actions, shape=r.shape, dtype=r.dtype)
+      else:
+          p = self._replay.transition['traj_prob']
       gamma = self._replay.transition['traj_discount']
 
       state_shape = self.observation_shape + (self.stack_size,)

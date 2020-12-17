@@ -53,17 +53,16 @@ class FixedReplayOffPolicyDQNAgent(dqn_agent.DQNAgent):
           init_checkpoint_dir, 'checkpoints')
     else:
       self._init_checkpoint_dir = None
-    decay = kwargs.pop('decay')
     nbatches = kwargs.pop('nbatches')
     coverage = kwargs.pop('coverage')
     self.sarsa = kwargs.pop('sarsa')
     self.uniform_propensities = kwargs.pop('uniform_propensities')
+    self.moment_constraint = kwargs.pop('moment_constraint')
     super(FixedReplayOffPolicyDQNAgent, self).__init__(sess, num_actions, **kwargs)
-    self.mle = mle.MLE()
-    self.ib = ib.IncrementalWRBetting(decay=decay)
-    self.iwlb = iwlb.IwLb(coverage=coverage)
-    self.incriwlb = incriwlb.IncrementalIwLb(coverage=coverage, nbatches=nbatches)
-    self.iiwlbmom = iiwlbmom.IncrementalIwLbMoment(coverage=coverage, nbatches=nbatches)
+    if self.moment_constraint:
+        self.iiwlbmom = iiwlbmom.IncrementalIwLbMoment(coverage=coverage, nbatches=nbatches)
+    else:
+        self.iiwlbmom = incriwlb.IncrementalIwLb(coverage=coverage, nbatches=nbatches)
 
   def step(self, reward, observation):
     """Records the most recent transition and returns the agent's next action.
@@ -125,10 +124,6 @@ class FixedReplayOffPolicyDQNAgent(dqn_agent.DQNAgent):
           return w
       importance_weights = tf.numpy_function(assign_ones, [ flassimp ], tf.float32)
       w = tf.math.cumprod(importance_weights, axis=1)                              #b x h
-      #q = tf.numpy_function(lambda *args: self.mle.tfhook(*args), [ gamma, w, r ], tf.float32)
-      #q = tf.numpy_function(lambda *args: self.ib.tfhook(*args), [ gamma, w, r ], tf.float32)
-      #q = tf.numpy_function(lambda *args: self.iwlb.tfhook(*args), [ gamma, w, r ], tf.float32)
-      #q = tf.numpy_function(lambda *args: self.incriwlb.tfhook(*args), [ gamma, w, r ], tf.float32)
       q = tf.numpy_function(lambda *args: self.iiwlbmom.tfhook(*args), [ gamma, w, r ], tf.float32)
 
       if self.summary_writer is not None:

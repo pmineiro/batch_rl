@@ -10,7 +10,7 @@ class IncrementalIwLb:
     def dualstfhook(self):
         import numpy as np
         
-        return np.array([ self.vhat, self.alphastar, self.kappastar ]).astype(np.single)
+        return np.array([ self.vhat, self.alphastar, 0, self.kappastar ]).astype(np.single)
     
     def tfhook(self, g, w, r):
         from scipy.stats import f

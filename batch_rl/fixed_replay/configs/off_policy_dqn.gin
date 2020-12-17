@@ -18,11 +18,11 @@ FixedReplayOffPolicyDQNAgent.epsilon_decay_period = 250000  # agent steps
 FixedReplayOffPolicyDQNAgent.tf_device = '/gpu:0'
 # FixedReplayOffPolicyDQNAgent.tf_device = '/cpu:*'
 FixedReplayOffPolicyDQNAgent.optimizer = @tf.train.AdamOptimizer()
-FixedReplayOffPolicyDQNAgent.decay = 0.99999
 FixedReplayOffPolicyDQNAgent.nbatches = 32
 FixedReplayOffPolicyDQNAgent.coverage = 0.95
 FixedReplayOffPolicyDQNAgent.sarsa = False
 FixedReplayOffPolicyDQNAgent.uniform_propensities = False
+FixedReplayOffPolicyDQNAgent.moment_constraint = True
 
 tf.train.RMSPropOptimizer.learning_rate = 0.00025
 tf.train.RMSPropOptimizer.decay = 0.95

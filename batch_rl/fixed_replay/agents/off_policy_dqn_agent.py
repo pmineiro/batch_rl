@@ -74,7 +74,10 @@ class FixedReplayOffPolicyDQNAgent(dqn_agent.DQNAgent):
           t = self.iteration_count
           scalefac = 6 / pi**2
 
-          return 1.0 - (1.0 - self.coverage) * scalefac / t**2
+          new_coverage = 1.0 - (1.0 - self.coverage) * scalefac / t**2
+          tf.logging.info('\t setting coverage to %g', new_coverage)
+
+          return new_coverage
       else:
           return self.coverage
 

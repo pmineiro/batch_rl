@@ -54,15 +54,33 @@ class FixedReplayOffPolicyDQNAgent(dqn_agent.DQNAgent):
     else:
       self._init_checkpoint_dir = None
     nbatches = kwargs.pop('nbatches')
-    coverage = kwargs.pop('coverage')
+    self.coverage = kwargs.pop('coverage')
     self.sarsa = kwargs.pop('sarsa')
     self.uniform_propensities = kwargs.pop('uniform_propensities')
     self.moment_constraint = kwargs.pop('moment_constraint')
+    self.coverage_decay = kwargs.pop('coverage_decay')
     super(FixedReplayOffPolicyDQNAgent, self).__init__(sess, num_actions, **kwargs)
     if self.moment_constraint:
-        self.iiwlbmom = iiwlbmom.IncrementalIwLbMoment(coverage=coverage, nbatches=nbatches)
+        self.iiwlbmom = iiwlbmom.IncrementalIwLbMoment(coverage=self.coverage, nbatches=nbatches)
     else:
-        self.iiwlbmom = incriwlb.IncrementalIwLb(coverage=coverage, nbatches=nbatches)
+        self.iiwlbmom = incriwlb.IncrementalIwLb(coverage=self.coverage, nbatches=nbatches)
+    self.iteration_count = 0
+    self.iteration_end_hook()
+
+  def compute_coverage(self):
+      if self.coverage_decay:
+          from math import pi
+
+          t = self.iteration_count
+          scalefac = 6 / pi**2
+
+          return 1.0 - (1.0 - self.coverage) * scalefac / t**2
+      else:
+          return self.coverage
+
+  def iteration_end_hook(self):
+      self.iteration_count += 1
+      self.iiwlbmom.coverage = self.compute_coverage()
 
   def step(self, reward, observation):
     """Records the most recent transition and returns the agent's next action.

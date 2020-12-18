@@ -19,7 +19,8 @@ FixedReplayOffPolicyDQNAgent.tf_device = '/gpu:0'
 # FixedReplayOffPolicyDQNAgent.tf_device = '/cpu:*'
 FixedReplayOffPolicyDQNAgent.optimizer = @tf.train.AdamOptimizer()
 FixedReplayOffPolicyDQNAgent.nbatches = 32
-FixedReplayOffPolicyDQNAgent.coverage = 0.95
+FixedReplayOffPolicyDQNAgent.coverage = 0.5
+FixedReplayOffPolicyDQNAgent.coverage_decay = True
 FixedReplayOffPolicyDQNAgent.sarsa = False
 FixedReplayOffPolicyDQNAgent.uniform_propensities = False
 FixedReplayOffPolicyDQNAgent.moment_constraint = True
@@ -33,10 +34,10 @@ tf.train.RMSPropOptimizer.centered = True
 tf.train.AdamOptimizer.learning_rate = 0.00005
 tf.train.AdamOptimizer.epsilon = 0.0003125
 
-atari_lib.create_atari_environment.game_name = 'Seaquest'
+atari_lib.create_atari_environment.game_name = 'Breakout'
 # Sticky actions with probability 0.25, as suggested by (Machado et al., 2017).
 atari_lib.create_atari_environment.sticky_actions = True
-FixedReplayRunner.num_iterations = 200
+FixedReplayRunner.num_iterations = 100
 FixedReplayRunner.training_steps = 250000  # agent steps
 FixedReplayRunner.evaluation_steps = 125000  # agent steps
 FixedReplayRunner.max_steps_per_episode = 27000  # agent steps

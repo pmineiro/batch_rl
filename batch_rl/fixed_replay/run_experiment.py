@@ -85,6 +85,12 @@ class FixedReplayRunner(run_experiment.Runner):
 
     self._save_tensorboard_summaries(
         iteration, num_episodes_eval, average_reward_eval)
+
+    try:
+        self._agent.iteration_end_hook()
+    except AttributeError:
+        pass
+
     return statistics.data_lists
 
   def _save_tensorboard_summaries(self, iteration,

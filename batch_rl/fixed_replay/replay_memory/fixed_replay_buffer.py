@@ -58,6 +58,7 @@ class FixedReplayBuffer(object):
     self.add_count = np.array(0)
     self._replay_suffix = replay_suffix
     self._maxbuffernum = kwargs.pop('maxbuffernum')
+    self._stratified_sample = kwargs.pop('stratified_sample')
     while not self._loaded_buffers:
       if replay_suffix:
         assert replay_suffix >= 0, 'Please pass a non-negative replay suffix'
@@ -105,8 +106,32 @@ class FixedReplayBuffer(object):
       if self._maxbuffernum is not None:
           ckpt_suffixes = [v for v in ckpt_suffixes if int(v) < self._maxbuffernum]
       if num_buffers is not None:
-        ckpt_suffixes = np.random.choice(
-            ckpt_suffixes, num_buffers, replace=False)
+          if self._stratified_sample:
+              def get_chunks(lst, n):
+                  chunksize = len(lst) // n
+                  rv = []
+                  chunkcnt = 1
+                  for m, v in enumerate(lst):
+                      rv.append(v)
+                      if len(rv) >= chunksize:
+                          yield rv
+                          rv = []
+                          chunkcnt += 1
+                      if chunkcnt >= n:
+                          rv = lst[m+1:]
+                          break
+
+                  if len(rv):
+                      yield rv
+
+              chosen = []
+              ckpt_suffixes = list(sorted(ckpt_suffixes, key=int))
+              for chunk in get_chunks(ckpt_suffixes, num_buffers):
+                  chosen.append(np.random.choice(chunk, 1).item())
+              ckpt_suffixes = chosen
+          else:
+              ckpt_suffixes = np.random.choice(
+                  ckpt_suffixes, num_buffers, replace=False)
       self._replay_buffers = []
       # Load the replay buffers in parallel
       with futures.ThreadPoolExecutor(
@@ -168,7 +193,8 @@ class WrappedFixedReplayBuffer(parent):
                action_dtype=np.int32,
                reward_shape=(),
                reward_dtype=np.float32,
-               maxbuffernum=None):
+               maxbuffernum=None,
+               stratified_sample=False):
     """Initializes WrappedFixedReplayBuffer."""
 
     memory = FixedReplayBuffer(
@@ -176,7 +202,7 @@ class WrappedFixedReplayBuffer(parent):
         batch_size, update_horizon, gamma, max_sample_attempts,
         extra_storage_types=extra_storage_types,
         observation_dtype=observation_dtype,
-        maxbuffernum=maxbuffernum)
+        maxbuffernum=maxbuffernum, stratified_sample=stratified_sample)
 
     super(WrappedFixedReplayBuffer, self).__init__(
         observation_shape,

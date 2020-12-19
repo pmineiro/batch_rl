@@ -23,7 +23,8 @@ FixedReplayOffPolicyDQNAgent.coverage = 0.95
 FixedReplayOffPolicyDQNAgent.coverage_decay = False
 FixedReplayOffPolicyDQNAgent.sarsa = False
 FixedReplayOffPolicyDQNAgent.uniform_propensities = False
-FixedReplayOffPolicyDQNAgent.qlambda = True
+FixedReplayOffPolicyDQNAgent.qlambda = False
+FixedReplayOffPolicyDQNAgent.empirical_pdis = False
 FixedReplayOffPolicyDQNAgent.moment_constraint = True
 
 tf.train.RMSPropOptimizer.learning_rate = 0.00025

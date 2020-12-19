@@ -11,6 +11,7 @@ from __future__ import print_function
 import os
 
 from batch_rl.fixed_replay.replay_memory import fixed_replay_buffer
+from batch_rl.fixed_replay.agents import empiricalpdis as emppdis
 from batch_rl.fixed_replay.agents import iwlb as iwlb
 from batch_rl.fixed_replay.agents import incrementaliwlb as incriwlb
 from batch_rl.fixed_replay.agents import incrementaliwlbmoment as iiwlbmom
@@ -59,9 +60,12 @@ class FixedReplayOffPolicyDQNAgent(dqn_agent.DQNAgent):
     self.qlambda = kwargs.pop('qlambda')
     self.uniform_propensities = kwargs.pop('uniform_propensities')
     self.moment_constraint = kwargs.pop('moment_constraint')
+    self.empirical_pdis = kwargs.pop('empirical_pdis')
     self.coverage_decay = kwargs.pop('coverage_decay')
     super(FixedReplayOffPolicyDQNAgent, self).__init__(sess, num_actions, **kwargs)
-    if self.moment_constraint:
+    if self.empirical_pdis:
+        self.iiwlbmom = emppdis.EmpiricalPdis()
+    elif self.moment_constraint:
         self.iiwlbmom = iiwlbmom.IncrementalIwLbMoment(coverage=self.coverage, nbatches=nbatches)
     else:
         self.iiwlbmom = incriwlb.IncrementalIwLb(coverage=self.coverage, nbatches=nbatches)
@@ -75,7 +79,10 @@ class FixedReplayOffPolicyDQNAgent(dqn_agent.DQNAgent):
           t = self.iteration_count
           scalefac = 6 / pi**2
 
-          return 1.0 - (1.0 - self.coverage) * scalefac / t**2
+          new_coverage = 1.0 - (1.0 - self.coverage) * scalefac / t**2
+          tf.logging.info('\t setting coverage to %g', new_coverage)
+
+          return new_coverage
       else:
           return self.coverage
 

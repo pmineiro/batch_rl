@@ -56,6 +56,7 @@ class FixedReplayOffPolicyDQNAgent(dqn_agent.DQNAgent):
     nbatches = kwargs.pop('nbatches')
     self.coverage = kwargs.pop('coverage')
     self.sarsa = kwargs.pop('sarsa')
+    self.qlambda = kwargs.pop('qlambda')
     self.uniform_propensities = kwargs.pop('uniform_propensities')
     self.moment_constraint = kwargs.pop('moment_constraint')
     self.coverage_decay = kwargs.pop('coverage_decay')
@@ -119,7 +120,10 @@ class FixedReplayOffPolicyDQNAgent(dqn_agent.DQNAgent):
       s = self._replay.transition['traj_state']
       a = self._replay.transition['traj_action']
       r = self._replay.transition['traj_reward']
-      if self.uniform_propensities:
+      if self.qlambda:
+          p = tf.constant(1.0, shape=r.shape, dtype=r.dtype)
+          off, on = 0.0, 1.0
+      elif self.uniform_propensities:
           p = tf.constant(1.0 / self.num_actions, shape=r.shape, dtype=r.dtype)
       else:
           p = self._replay.transition['traj_prob']

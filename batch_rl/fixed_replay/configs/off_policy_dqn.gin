@@ -19,10 +19,11 @@ FixedReplayOffPolicyDQNAgent.tf_device = '/gpu:0'
 # FixedReplayOffPolicyDQNAgent.tf_device = '/cpu:*'
 FixedReplayOffPolicyDQNAgent.optimizer = @tf.train.AdamOptimizer()
 FixedReplayOffPolicyDQNAgent.nbatches = 32
-FixedReplayOffPolicyDQNAgent.coverage = 0.5
-FixedReplayOffPolicyDQNAgent.coverage_decay = True
+FixedReplayOffPolicyDQNAgent.coverage = 0.95
+FixedReplayOffPolicyDQNAgent.coverage_decay = False
 FixedReplayOffPolicyDQNAgent.sarsa = False
 FixedReplayOffPolicyDQNAgent.uniform_propensities = False
+FixedReplayOffPolicyDQNAgent.qlambda = True
 FixedReplayOffPolicyDQNAgent.moment_constraint = True
 
 tf.train.RMSPropOptimizer.learning_rate = 0.00025

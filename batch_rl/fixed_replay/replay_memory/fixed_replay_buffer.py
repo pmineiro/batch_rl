@@ -194,7 +194,8 @@ class WrappedFixedReplayBuffer(parent):
                reward_shape=(),
                reward_dtype=np.float32,
                maxbuffernum=None,
-               stratified_sample=False):
+               stratified_sample=False,
+               subsample_percentage=None):
     """Initializes WrappedFixedReplayBuffer."""
 
     memory = FixedReplayBuffer(
@@ -202,7 +203,8 @@ class WrappedFixedReplayBuffer(parent):
         batch_size, update_horizon, gamma, max_sample_attempts,
         extra_storage_types=extra_storage_types,
         observation_dtype=observation_dtype,
-        maxbuffernum=maxbuffernum, stratified_sample=stratified_sample)
+        maxbuffernum=maxbuffernum, stratified_sample=stratified_sample,
+        subsample_percentage=subsample_percentage)
 
     super(WrappedFixedReplayBuffer, self).__init__(
         observation_shape,

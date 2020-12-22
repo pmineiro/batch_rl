@@ -20,6 +20,7 @@ FixedReplayOffPolicyDQNAgent.tf_device = '/gpu:0'
 FixedReplayOffPolicyDQNAgent.optimizer = @tf.train.AdamOptimizer()
 FixedReplayOffPolicyDQNAgent.nbatches = 32
 FixedReplayOffPolicyDQNAgent.coverage = 0.95
+FixedReplayOffPolicyDQNAgent.rmin = -1
 FixedReplayOffPolicyDQNAgent.coverage_decay = False
 FixedReplayOffPolicyDQNAgent.sarsa = False
 FixedReplayOffPolicyDQNAgent.uniform_propensities = False
@@ -36,7 +37,7 @@ tf.train.RMSPropOptimizer.centered = True
 tf.train.AdamOptimizer.learning_rate = 0.00005
 tf.train.AdamOptimizer.epsilon = 0.0003125
 
-atari_lib.create_atari_environment.game_name = 'Breakout'
+atari_lib.create_atari_environment.game_name = 'Pong'
 # Sticky actions with probability 0.25, as suggested by (Machado et al., 2017).
 atari_lib.create_atari_environment.sticky_actions = True
 FixedReplayRunner.num_iterations = 100
@@ -45,7 +46,7 @@ FixedReplayRunner.evaluation_steps = 125000  # agent steps
 FixedReplayRunner.max_steps_per_episode = 27000  # agent steps
 
 WrappedFixedReplayBuffer.replay_capacity = 1000000
-WrappedFixedReplayBuffer.maxbuffernum = None
+WrappedFixedReplayBuffer.maxbuffernum = 10
 WrappedFixedReplayBuffer.stratified_sample = False
 WrappedFixedReplayBuffer.batch_size = 32
-WrappedFixedReplayBuffer.subsample_percentage = 1
+WrappedFixedReplayBuffer.subsample_percentage = None

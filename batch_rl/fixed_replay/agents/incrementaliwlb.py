@@ -17,7 +17,7 @@ class IncrementalIwLb:
         from scipy import optimize
         import numpy as np
         
-        self.batches.append( [ wn.dot(gn * rn) for gn, wn, rn in zip(g, w, r) ] )
+        self.batches.append( [ wn.dot(gn * np.clip(rn, a_min=0, a_max=None)) for gn, wn, rn in zip(g, w, r) ] )
 
         N = len(self.batches) * g.shape[0]
         Delta = 0.5 * f.isf(q=1.0-self.coverage, dfn=1, dfd=N-1) / N
@@ -37,4 +37,4 @@ class IncrementalIwLb:
         self.alphastar = res.x
         self.kappastar = kappa(self.alphastar)
         
-        return np.array([ self.kappastar / (self.alphastar + wn.dot(gn * rn)) for gn, wn, rn in zip(g, w, r) ]).astype(np.single)
+        return np.array([ self.kappastar / (self.alphastar + wn.dot(gn * np.clip(rn, a_min=0, a_max=None))) for gn, wn, rn in zip(g, w, r) ]).astype(np.single)

@@ -56,6 +56,7 @@ class FixedReplayOffPolicyDQNAgent(dqn_agent.DQNAgent):
       self._init_checkpoint_dir = None
     nbatches = kwargs.pop('nbatches')
     self.coverage = kwargs.pop('coverage')
+    self.rmin = float(kwargs.pop('rmin'))
     self.sarsa = kwargs.pop('sarsa')
     self.qlambda = kwargs.pop('qlambda')
     self.uniform_propensities = kwargs.pop('uniform_propensities')
@@ -153,7 +154,7 @@ class FixedReplayOffPolicyDQNAgent(dqn_agent.DQNAgent):
           return w
       importance_weights = tf.numpy_function(assign_ones, [ flassimp ], tf.float32)
       w = tf.math.cumprod(importance_weights, axis=1)                              #b x h
-      q = tf.numpy_function(lambda *args: self.iiwlbmom.tfhook(*args), [ gamma, w, r ], tf.float32)
+      q = tf.numpy_function(lambda *args: self.iiwlbmom.tfhook(*args), [ gamma, w, r - self.rmin ], tf.float32)
 
       if self.summary_writer is not None:
         duals = tf.numpy_function(lambda *args: self.iiwlbmom.dualstfhook(*args), [ ], tf.float32)

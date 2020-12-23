@@ -57,12 +57,13 @@ class FixedReplayOffPolicyDQNAgent(dqn_agent.DQNAgent):
     nbatches = kwargs.pop('nbatches')
     self.coverage = kwargs.pop('coverage')
     self.rmin = float(kwargs.pop('rmin'))
-    self.sarsa = kwargs.pop('sarsa')
-    self.qlambda = kwargs.pop('qlambda')
-    self.uniform_propensities = kwargs.pop('uniform_propensities')
-    self.moment_constraint = kwargs.pop('moment_constraint')
-    self.empirical_pdis = kwargs.pop('empirical_pdis')
     self.coverage_decay = kwargs.pop('coverage_decay')
+    self.sarsa = kwargs.pop('sarsa')
+    self.uniform_propensities = kwargs.pop('uniform_propensities')
+    self.qlambda = kwargs.pop('qlambda')
+    self.empirical_pdis = kwargs.pop('empirical_pdis')
+    self.moment_constraint = kwargs.pop('moment_constraint')
+    self.adjust_lr = kwargs.pop('adjust_lr')
     super(FixedReplayOffPolicyDQNAgent, self).__init__(sess, num_actions, **kwargs)
     if self.empirical_pdis:
         self.iiwlbmom = emppdis.EmpiricalPdis()
@@ -154,7 +155,10 @@ class FixedReplayOffPolicyDQNAgent(dqn_agent.DQNAgent):
           return w
       importance_weights = tf.numpy_function(assign_ones, [ flassimp ], tf.float32)
       w = tf.math.cumprod(importance_weights, axis=1)                              #b x h
-      q = tf.numpy_function(lambda *args: self.iiwlbmom.tfhook(*args), [ gamma, w, r - self.rmin ], tf.float32)
+      if self.rmin == 0:
+          q = tf.numpy_function(lambda *args: self.iiwlbmom.tfhook(*args), [ gamma, w, r ], tf.float32)
+      else:
+          q = tf.numpy_function(lambda *args: self.iiwlbmom.tfhook(*args), [ gamma, w, r - self.rmin ], tf.float32)
 
       if self.summary_writer is not None:
         duals = tf.numpy_function(lambda *args: self.iiwlbmom.dualstfhook(*args), [ ], tf.float32)
@@ -195,3 +199,29 @@ class FixedReplayOffPolicyDQNAgent(dqn_agent.DQNAgent):
     r = self._build_reward_op()
     return r + self.cumulative_gamma * replay_next_qt_max * (
         1. - tf.cast(self._replay.terminals, tf.float32))
+
+  def _build_train_op(self):
+    """Builds a training op.
+
+    Returns:
+      train_op: An op performing one step of training from replay data.
+    """
+    replay_action_one_hot = tf.one_hot(
+        self._replay.actions, self.num_actions, 1., 0., name='action_one_hot')
+    replay_chosen_q = tf.reduce_sum(
+        self._replay_net_outputs.q_values * replay_action_one_hot,
+        axis=1,
+        name='replay_chosen_q')
+
+    target = tf.stop_gradient(self._build_target_q_op())
+    loss = tf.reduce_mean(tf.compat.v1.losses.huber_loss(
+        target, replay_chosen_q, reduction=tf.losses.Reduction.NONE))
+    if self.adjust_lr is not None:
+        scalefac = tf.stop_gradient(tf.clip_by_value(loss, self.adjust_lr, 10000))
+        scaleloss = loss * (self.adjust_lr / scalefac)
+    else:
+        scaleloss = loss
+    if self.summary_writer is not None:
+      with tf.compat.v1.variable_scope('Losses'):
+        tf.compat.v1.summary.scalar('HuberLoss', scaleloss)
+    return self.optimizer.minimize(scaleloss)

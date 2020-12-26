@@ -47,7 +47,8 @@ FixedReplayRunner.evaluation_steps = 125000  # agent steps
 FixedReplayRunner.max_steps_per_episode = 27000  # agent steps
 
 WrappedFixedReplayBuffer.replay_capacity = 1000000
+WrappedFixedReplayBuffer.batch_size = 32
 WrappedFixedReplayBuffer.maxbuffernum = None
 WrappedFixedReplayBuffer.stratified_sample = False
-WrappedFixedReplayBuffer.batch_size = 32
 WrappedFixedReplayBuffer.subsample_percentage = 10
+WrappedFixedReplayBuffer.inorder = True

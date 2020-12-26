@@ -59,12 +59,15 @@ class FixedReplayBuffer(object):
     self._replay_suffix = replay_suffix
     self._maxbuffernum = kwargs.pop('maxbuffernum')
     self._stratified_sample = kwargs.pop('stratified_sample')
+    self._inorder = kwargs.pop('inorder')
+    self._loadcount = 0
     while not self._loaded_buffers:
       if replay_suffix:
         assert replay_suffix >= 0, 'Please pass a non-negative replay suffix'
         self.load_single_buffer(replay_suffix)
       else:
         self._load_replay_buffers(num_buffers=1)
+    self._loadcount = 0
 
   def load_single_buffer(self, suffix):
     """Load a single replay buffer."""
@@ -74,6 +77,7 @@ class FixedReplayBuffer(object):
       self.add_count = replay_buffer.add_count
       self._num_replay_buffers = 1
       self._loaded_buffers = True
+      self._loadcount += 1
 
   def _load_buffer(self, suffix):
     """Loads a OutOfGraphReplayBuffer replay buffer."""
@@ -106,7 +110,12 @@ class FixedReplayBuffer(object):
       if self._maxbuffernum is not None:
           ckpt_suffixes = [v for v in ckpt_suffixes if int(v) < self._maxbuffernum]
       if num_buffers is not None:
-          if self._stratified_sample:
+          if self._inorder:
+              minindex = self._loadcount % len(ckpt_suffixes)
+              maxindex = (self._loadcount + num_buffers) % len(ckpt_suffixes)
+              ckpt_suffixes = list(sorted(ckpt_suffixes, key=int))[minindex:maxindex]
+              self._loadcount += 1
+          elif self._stratified_sample:
               def get_chunks(lst, n):
                   chunksize = len(lst) // n
                   rv = []
@@ -195,7 +204,8 @@ class WrappedFixedReplayBuffer(parent):
                reward_dtype=np.float32,
                maxbuffernum=None,
                stratified_sample=False,
-               subsample_percentage=None):
+               subsample_percentage=None,
+               inorder=False):
     """Initializes WrappedFixedReplayBuffer."""
 
     memory = FixedReplayBuffer(
@@ -204,7 +214,7 @@ class WrappedFixedReplayBuffer(parent):
         extra_storage_types=extra_storage_types,
         observation_dtype=observation_dtype,
         maxbuffernum=maxbuffernum, stratified_sample=stratified_sample,
-        subsample_percentage=subsample_percentage)
+        subsample_percentage=subsample_percentage, inorder=inorder)
 
     super(WrappedFixedReplayBuffer, self).__init__(
         observation_shape,

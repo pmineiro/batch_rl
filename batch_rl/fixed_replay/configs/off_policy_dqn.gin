@@ -8,7 +8,7 @@ import batch_rl.fixed_replay.agents.off_policy_dqn_agent
 import gin.tf.external_configurables
 
 FixedReplayOffPolicyDQNAgent.gamma = 0.99
-FixedReplayOffPolicyDQNAgent.update_horizon = 3
+FixedReplayOffPolicyDQNAgent.update_horizon = 2
 FixedReplayOffPolicyDQNAgent.min_replay_history = 20000  # agent steps
 FixedReplayOffPolicyDQNAgent.update_period = 4
 FixedReplayOffPolicyDQNAgent.target_update_period = 8000  # agent steps
@@ -38,7 +38,7 @@ tf.train.RMSPropOptimizer.centered = True
 tf.train.AdamOptimizer.learning_rate = 0.00005
 tf.train.AdamOptimizer.epsilon = 0.0003125
 
-atari_lib.create_atari_environment.game_name = 'Breakout'
+atari_lib.create_atari_environment.game_name = 'Seaquest'
 # Sticky actions with probability 0.25, as suggested by (Machado et al., 2017).
 atari_lib.create_atari_environment.sticky_actions = True
 FixedReplayRunner.num_iterations = 100
@@ -47,7 +47,7 @@ FixedReplayRunner.evaluation_steps = 125000  # agent steps
 FixedReplayRunner.max_steps_per_episode = 27000  # agent steps
 
 WrappedFixedReplayBuffer.replay_capacity = 1000000
-WrappedFixedReplayBuffer.maxbuffernum = 10
+WrappedFixedReplayBuffer.maxbuffernum = None
 WrappedFixedReplayBuffer.stratified_sample = False
 WrappedFixedReplayBuffer.batch_size = 32
-WrappedFixedReplayBuffer.subsample_percentage = None
+WrappedFixedReplayBuffer.subsample_percentage = 10

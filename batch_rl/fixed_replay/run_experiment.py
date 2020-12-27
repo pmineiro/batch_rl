@@ -33,6 +33,11 @@ import tensorflow.compat.v1 as tf
 class FixedReplayRunner(run_experiment.Runner):
   """Object that handles running Dopamine experiments with fixed replay buffer."""
 
+  def __init__(self, *args, training_maxi_steps=1, **kwargs):
+      self._training_maxi_steps = training_maxi_steps
+      super().__init__(*args, **kwargs)
+
+
   def _initialize_checkpointer_and_maybe_resume(self, checkpoint_file_prefix):
     super(FixedReplayRunner, self)._initialize_checkpointer_and_maybe_resume(
         checkpoint_file_prefix)
@@ -74,12 +79,13 @@ class FixedReplayRunner(run_experiment.Runner):
     """Runs one iteration of agent/environment interaction."""
     statistics = iteration_statistics.IterationStatistics()
     tf.logging.info('Starting iteration %d', iteration)
-    # pylint: disable=protected-access
-    if not self._agent._replay_suffix:
-      # Reload the replay buffer
-      self._agent._replay.memory.reload_buffer(num_buffers=5)
-    # pylint: enable=protected-access
-    self._run_train_phase()
+    for _ in range(self._training_maxi_steps):
+        # pylint: disable=protected-access
+        if not self._agent._replay_suffix:
+          # Reload the replay buffer
+          self._agent._replay.memory.reload_buffer(num_buffers=4)
+        # pylint: enable=protected-access
+        self._run_train_phase()
 
     num_episodes_eval, average_reward_eval = self._run_eval_phase(statistics)
 

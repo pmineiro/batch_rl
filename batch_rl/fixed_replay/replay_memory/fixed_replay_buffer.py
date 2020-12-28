@@ -83,7 +83,7 @@ class FixedReplayBuffer(object):
     """Loads a OutOfGraphReplayBuffer replay buffer."""
     try:
       if use_off_policy_replay_buffer:
-        replay_buffer = off_policy_replay_buffer.OutOfGraphOffPolicyReplayBuffer(*self._args, **self._kwargs)
+        replay_buffer = off_policy_replay_buffer.OutOfGraphOffPolicyReplayBuffer(*self._args, subsample_seed=suffix, **self._kwargs)
       else:
         # pytype: disable=attribute-error
         replay_buffer = circular_replay_buffer.OutOfGraphReplayBuffer(

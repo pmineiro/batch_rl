@@ -10,13 +10,10 @@ from __future__ import print_function
 
 import os
 
-from batch_rl.fixed_replay.replay_memory import fixed_replay_buffer
 from batch_rl.fixed_replay.agents import empiricalpdis as emppdis
-from batch_rl.fixed_replay.agents import iwlb as iwlb
 from batch_rl.fixed_replay.agents import incrementaliwlb as incriwlb
 from batch_rl.fixed_replay.agents import incrementaliwlbmoment as iiwlbmom
-from batch_rl.fixed_replay.agents import incrementalwrbetting as ib
-from batch_rl.fixed_replay.agents import mle as mle
+from batch_rl.fixed_replay.replay_memory import fixed_replay_buffer
 from dopamine.agents.dqn import dqn_agent
 import gin
 import tensorflow.compat.v1 as tf
@@ -61,13 +58,13 @@ class FixedReplayOffPolicyDQNAgent(dqn_agent.DQNAgent):
     self.sarsa = kwargs.pop('sarsa')
     self.uniform_propensities = kwargs.pop('uniform_propensities')
     self.qlambda = kwargs.pop('qlambda')
-    self.empirical_pdis = kwargs.pop('empirical_pdis')
-    self.moment_constraint = kwargs.pop('moment_constraint')
+    empirical_pdis = kwargs.pop('empirical_pdis')
+    moment_constraint = kwargs.pop('moment_constraint')
     self.adjust_lr = kwargs.pop('adjust_lr')
     super(FixedReplayOffPolicyDQNAgent, self).__init__(sess, num_actions, **kwargs)
-    if self.empirical_pdis:
+    if empirical_pdis:
         self.iiwlbmom = emppdis.EmpiricalPdis()
-    elif self.moment_constraint:
+    elif moment_constraint:
         self.iiwlbmom = iiwlbmom.IncrementalIwLbMoment(coverage=self.coverage, nbatches=nbatches)
     else:
         self.iiwlbmom = incriwlb.IncrementalIwLb(coverage=self.coverage, nbatches=nbatches)

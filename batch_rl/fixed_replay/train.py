@@ -32,6 +32,7 @@ from absl import flags
 from batch_rl.fixed_replay import run_experiment
 from batch_rl.fixed_replay.agents import dqn_agent
 from batch_rl.fixed_replay.agents import multi_head_dqn_agent
+from batch_rl.fixed_replay.agents import off_policy_multi_head_dqn_agent
 from batch_rl.fixed_replay.agents import off_policy_dqn_agent
 from batch_rl.fixed_replay.agents import prioritized_off_policy_dqn_agent
 from batch_rl.fixed_replay.agents import quantile_agent
@@ -72,6 +73,8 @@ def create_agent(sess, environment, replay_data_dir, summary_writer=None):
     agent = quantile_agent.FixedReplayQuantileAgent
   elif FLAGS.agent_name == 'multi_head_dqn':
     agent = multi_head_dqn_agent.FixedReplayMultiHeadDQNAgent
+  elif FLAGS.agent_name == 'off_policy_multi_head_dqn':
+    agent = off_policy_multi_head_dqn_agent.FixedReplayOffPolicyMultiHeadDQNAgent
   elif FLAGS.agent_name == 'off_policy_dqn':
     agent = off_policy_dqn_agent.FixedReplayOffPolicyDQNAgent
   elif FLAGS.agent_name == 'prioritized_off_policy_dqn':

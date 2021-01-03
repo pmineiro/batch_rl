@@ -1,0 +1,47 @@
+# Hyperparameters follow the classic Nature DQN, but we modify as necessary to
+# match those used in Rainbow (Hessel et al., 2018), to ensure apples-to-apples
+# comparison.
+import dopamine.discrete_domains.atari_lib
+import batch_rl.fixed_replay.run_experiment
+import batch_rl.fixed_replay.replay_memory.fixed_replay_buffer
+import batch_rl.fixed_replay.agents.off_policy_multi_head_dqn_agent
+import gin.tf.external_configurables
+
+FixedReplayOffPolicyMultiHeadDQNAgent.gamma = 0.99
+FixedReplayOffPolicyMultiHeadDQNAgent.update_horizon = 2
+FixedReplayOffPolicyMultiHeadDQNAgent.min_replay_history = 20000  # agent steps
+FixedReplayOffPolicyMultiHeadDQNAgent.update_period = 4
+FixedReplayOffPolicyMultiHeadDQNAgent.target_update_period = 8000  # agent steps
+FixedReplayOffPolicyMultiHeadDQNAgent.epsilon_eval = 0.001
+FixedReplayOffPolicyMultiHeadDQNAgent.epsilon_decay_period = 250000  # agent steps
+FixedReplayOffPolicyMultiHeadDQNAgent.tf_device = '/gpu:0' # Use '/cpu:*' for CPUs
+FixedReplayOffPolicyMultiHeadDQNAgent.num_heads = 200
+FixedReplayOffPolicyMultiHeadDQNAgent.transform_strategy = 'IDENTITY'
+FixedReplayOffPolicyMultiHeadDQNAgent.optimizer = @tf.train.AdamOptimizer()
+FixedReplayOffPolicyMultiHeadDQNAgent.nbatches = 1
+FixedReplayOffPolicyMultiHeadDQNAgent.coverage = 0.99
+FixedReplayOffPolicyMultiHeadDQNAgent.rmin = 0
+FixedReplayOffPolicyMultiHeadDQNAgent.sarsa = False
+FixedReplayOffPolicyMultiHeadDQNAgent.uniform_propensities = False
+FixedReplayOffPolicyMultiHeadDQNAgent.qlambda = False
+FixedReplayOffPolicyMultiHeadDQNAgent.empirical_pdis = False
+FixedReplayOffPolicyMultiHeadDQNAgent.moment_constraint = True
+
+tf.train.AdamOptimizer.learning_rate = 0.00005
+tf.train.AdamOptimizer.epsilon = 0.0003125
+
+atari_lib.create_atari_environment.game_name = 'Breakout'
+# Sticky actions with probability 0.25, as suggested by (Machado et al., 2017).
+atari_lib.create_atari_environment.sticky_actions = True
+FixedReplayRunner.num_iterations = 100
+FixedReplayRunner.training_steps = 25000  # agent steps
+FixedReplayRunner.training_maxi_steps = 10
+FixedReplayRunner.evaluation_steps = 125000  # agent steps
+FixedReplayRunner.max_steps_per_episode = 27000  # agent steps
+
+WrappedFixedReplayBuffer.replay_capacity = 1000000
+WrappedFixedReplayBuffer.batch_size = 32
+WrappedFixedReplayBuffer.maxbuffernum = None
+WrappedFixedReplayBuffer.stratified_sample = False
+WrappedFixedReplayBuffer.subsample_percentage = 10
+WrappedFixedReplayBuffer.inorder = False

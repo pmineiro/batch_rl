@@ -42,8 +42,8 @@ atari_lib.create_atari_environment.game_name = 'Seaquest'
 # Sticky actions with probability 0.25, as suggested by (Machado et al., 2017).
 atari_lib.create_atari_environment.sticky_actions = True
 FixedReplayRunner.num_iterations = 100
-FixedReplayRunner.training_steps = 6250  # agent steps
-FixedReplayRunner.training_maxi_steps = 40
+FixedReplayRunner.training_steps = 3125  # agent steps
+FixedReplayRunner.training_maxi_steps = 80
 FixedReplayRunner.evaluation_steps = 125000  # agent steps
 FixedReplayRunner.max_steps_per_episode = 27000  # agent steps
 
@@ -51,5 +51,5 @@ WrappedFixedReplayBuffer.replay_capacity = 1000000
 WrappedFixedReplayBuffer.batch_size = 32
 WrappedFixedReplayBuffer.maxbuffernum = None
 WrappedFixedReplayBuffer.stratified_sample = False
-WrappedFixedReplayBuffer.subsample_percentage = 10
+WrappedFixedReplayBuffer.subsample_percentage = 1
 WrappedFixedReplayBuffer.inorder = False

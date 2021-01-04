@@ -78,3 +78,17 @@ class IncrementalIwLbMoment:
             self.vhat = -res.fun
 
         return np.array([ self.kappastar / (self.alphastar + self.betastar * np.sum(wn)/H + wn.dot(gn * np.clip(rn, a_min=0, a_max=None))) for gn, wn, rn in zip(g, w, r) ]).astype(np.single)
+
+class MultiIncrementalIwLbMoment:
+    def __init__(self, coverage, nbatches, nheads):
+        self.heads = [ IncrementalIwLbMoment(coverage, nbatches) for _ in range(nheads) ]
+
+    def dualstfhook(self):
+        import numpy as np
+
+        return np.vstack([ h.dualstfhook() for h in self.heads ]).astype(np.single)
+
+    def tfhook(self, g, w, r):
+        import numpy as np
+
+        return np.vstack([ h.tfhook(g, w[:, :, n], r) for n, h in enumerate(self.heads) ]).astype(np.single).T

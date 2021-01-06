@@ -60,6 +60,7 @@ class FixedReplayBuffer(object):
     self._maxbuffernum = kwargs.pop('maxbuffernum')
     self._stratified_sample = kwargs.pop('stratified_sample')
     self._inorder = kwargs.pop('inorder')
+    self._prefer_early = kwargs.pop('prefer_early')
     self._loadcount = 0
     while not self._loaded_buffers:
       if replay_suffix:
@@ -110,7 +111,14 @@ class FixedReplayBuffer(object):
       if self._maxbuffernum is not None:
           ckpt_suffixes = [v for v in ckpt_suffixes if int(v) < self._maxbuffernum]
       if num_buffers is not None:
-          if self._inorder:
+          if self._prefer_early:
+              ckpt_suffixes = list(sorted(ckpt_suffixes, key=int))
+              probs = np.array([ 1.0 / (1 + n) for n in range(len(ckpt_suffixes)) ])
+              probs /= np.sum(probs)
+
+              ckpt_suffixes = np.random.choice(
+                  ckpt_suffixes, num_buffers, p=probs, replace=False)
+          elif self._inorder:
               minindex = self._loadcount % len(ckpt_suffixes)
               maxindex = (self._loadcount + num_buffers) % len(ckpt_suffixes)
               ckpt_suffixes = list(sorted(ckpt_suffixes, key=int))[minindex:maxindex]
@@ -205,7 +213,8 @@ class WrappedFixedReplayBuffer(parent):
                maxbuffernum=None,
                stratified_sample=False,
                subsample_percentage=None,
-               inorder=False):
+               inorder=False,
+               prefer_early=False):
     """Initializes WrappedFixedReplayBuffer."""
 
     memory = FixedReplayBuffer(
@@ -214,7 +223,8 @@ class WrappedFixedReplayBuffer(parent):
         extra_storage_types=extra_storage_types,
         observation_dtype=observation_dtype,
         maxbuffernum=maxbuffernum, stratified_sample=stratified_sample,
-        subsample_percentage=subsample_percentage, inorder=inorder)
+        subsample_percentage=subsample_percentage, inorder=inorder,
+        prefer_early=prefer_early)
 
     super(WrappedFixedReplayBuffer, self).__init__(
         observation_shape,

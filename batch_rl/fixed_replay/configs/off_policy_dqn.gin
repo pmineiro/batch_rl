@@ -51,6 +51,6 @@ WrappedFixedReplayBuffer.replay_capacity = 1000000
 WrappedFixedReplayBuffer.batch_size = 32
 WrappedFixedReplayBuffer.maxbuffernum = None
 WrappedFixedReplayBuffer.stratified_sample = False
-WrappedFixedReplayBuffer.subsample_percentage = 10
+WrappedFixedReplayBuffer.subsample_percentage = 1
 WrappedFixedReplayBuffer.inorder = False
 WrappedFixedReplayBuffer.prefer_early = False

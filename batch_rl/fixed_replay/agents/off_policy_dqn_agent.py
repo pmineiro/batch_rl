@@ -126,6 +126,8 @@ class FixedReplayOffPolicyDQNAgent(dqn_agent.DQNAgent):
       s = self._replay.transition['traj_state']
       a = self._replay.transition['traj_action']
       r = self._replay.transition['traj_reward']
+      gamma = self._replay.transition['traj_discount']
+
       if self.online_importance_weights:
           w = tf.constant(1.0, shape=r.shape, dtype=r.dtype)
       else:
@@ -134,7 +136,6 @@ class FixedReplayOffPolicyDQNAgent(dqn_agent.DQNAgent):
               off, on = 0.0, 1.0
           else:
               p = self._replay.transition['traj_prob']
-          gamma = self._replay.transition['traj_discount']
 
           state_shape = self.observation_shape + (self.stack_size,)
           flat_s = tf.reshape(s, shape=(-1,) + state_shape)                 # b*h x 84 x 84 x 4

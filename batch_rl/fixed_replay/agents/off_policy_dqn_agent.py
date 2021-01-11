@@ -56,7 +56,7 @@ class FixedReplayOffPolicyDQNAgent(dqn_agent.DQNAgent):
     self.rmin = float(kwargs.pop('rmin'))
     self.coverage_decay = kwargs.pop('coverage_decay')
     self.sarsa = kwargs.pop('sarsa')
-    self.uniform_propensities = kwargs.pop('uniform_propensities')
+    self.online_importance_weights = kwargs.pop('online_importance_weights')
     self.qlambda = kwargs.pop('qlambda')
     empirical_pdis = kwargs.pop('empirical_pdis')
     moment_constraint = kwargs.pop('moment_constraint')
@@ -126,32 +126,34 @@ class FixedReplayOffPolicyDQNAgent(dqn_agent.DQNAgent):
       s = self._replay.transition['traj_state']
       a = self._replay.transition['traj_action']
       r = self._replay.transition['traj_reward']
-      if self.qlambda:
-          p = tf.constant(1.0, shape=r.shape, dtype=r.dtype)
-          off, on = 0.0, 1.0
-      elif self.uniform_propensities:
-          p = tf.constant(1.0 / self.num_actions, shape=r.shape, dtype=r.dtype)
+      if self.online_importance_weights:
+          w = tf.constant(1.0, shape=r.shape, dtype=r.dtype)
       else:
-          p = self._replay.transition['traj_prob']
-      gamma = self._replay.transition['traj_discount']
+          if self.qlambda:
+              p = tf.constant(1.0, shape=r.shape, dtype=r.dtype)
+              off, on = 0.0, 1.0
+          else:
+              p = self._replay.transition['traj_prob']
+          gamma = self._replay.transition['traj_discount']
 
-      state_shape = self.observation_shape + (self.stack_size,)
-      flat_s = tf.reshape(s, shape=(-1,) + state_shape)                 # b*h x 84 x 84 x 4
-      flat_qs = tf.stop_gradient(self.target_convnet(flat_s).q_values)  # b*h x num_actions
-      flat_qmax = tf.argmax(flat_qs, axis=1)                            # b*h
-      flat_pi = tf.one_hot(flat_qmax, depth=self.num_actions, axis=-1, on_value=on, off_value=off)  # b*h x num_actions
+          state_shape = self.observation_shape + (self.stack_size,)
+          flat_s = tf.reshape(s, shape=(-1,) + state_shape)                 # b*h x 84 x 84 x 4
+          flat_qs = tf.stop_gradient(self.target_convnet(flat_s).q_values)  # b*h x num_actions
+          flat_qmax = tf.argmax(flat_qs, axis=1)                            # b*h
+          flat_pi = tf.one_hot(flat_qmax, depth=self.num_actions, axis=-1, on_value=on, off_value=off)  # b*h x num_actions
 
-      flat_a = tf.reshape(a, (-1,))
-      action_mask = tf.one_hot(flat_a, depth=self.num_actions, dtype=tf.bool, on_value=True, off_value=False)
-      flat_behavior_probs = tf.boolean_mask(flat_pi, action_mask)                  #b*h
-      behavior_probs = tf.reshape(flat_behavior_probs, (-1, self.update_horizon))  #b x h
-      flassimp = behavior_probs / p                                      #b x h
-      # NB: tensorflow sucks
-      def assign_ones(w):
-          w[:, 0] = 1
-          return w
-      importance_weights = tf.numpy_function(assign_ones, [ flassimp ], tf.float32)
-      w = tf.math.cumprod(importance_weights, axis=1)                              #b x h
+          flat_a = tf.reshape(a, (-1,))
+          action_mask = tf.one_hot(flat_a, depth=self.num_actions, dtype=tf.bool, on_value=True, off_value=False)
+          flat_behavior_probs = tf.boolean_mask(flat_pi, action_mask)                  #b*h
+          behavior_probs = tf.reshape(flat_behavior_probs, (-1, self.update_horizon))  #b x h
+          flassimp = behavior_probs / p                                      #b x h
+          # NB: tensorflow sucks
+          def assign_ones(w):
+              w[:, 0] = 1
+              return w
+          importance_weights = tf.numpy_function(assign_ones, [ flassimp ], tf.float32)
+          w = tf.math.cumprod(importance_weights, axis=1)                              #b x h
+
       if self.rmin == 0:
           q = tf.numpy_function(lambda *args: self.iiwlbmom.tfhook(*args), [ gamma, w, r ], tf.float32)
       else:

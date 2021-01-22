@@ -25,7 +25,7 @@ FixedReplayOffPolicyDQNAgent.coverage_decay = False
 FixedReplayOffPolicyDQNAgent.sarsa = False
 FixedReplayOffPolicyDQNAgent.online_importance_weights = False
 FixedReplayOffPolicyDQNAgent.qlambda = False
-FixedReplayOffPolicyDQNAgent.empirical_pdis = False
+FixedReplayOffPolicyDQNAgent.empirical_pdis = True
 FixedReplayOffPolicyDQNAgent.moment_constraint = True
 FixedReplayOffPolicyDQNAgent.adjust_lr = None
 

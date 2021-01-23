@@ -8,7 +8,7 @@ import batch_rl.fixed_replay.agents.off_policy_dqn_agent
 import gin.tf.external_configurables
 
 FixedReplayOffPolicyDQNAgent.gamma = 0.99
-FixedReplayOffPolicyDQNAgent.update_horizon = 2
+FixedReplayOffPolicyDQNAgent.update_horizon = 1
 FixedReplayOffPolicyDQNAgent.min_replay_history = 20000  # agent steps
 FixedReplayOffPolicyDQNAgent.update_period = 4
 FixedReplayOffPolicyDQNAgent.target_update_period = 8000  # agent steps
@@ -24,7 +24,7 @@ FixedReplayOffPolicyDQNAgent.rmin = 0
 FixedReplayOffPolicyDQNAgent.coverage_decay = False
 FixedReplayOffPolicyDQNAgent.sarsa = False
 FixedReplayOffPolicyDQNAgent.online_importance_weights = False
-FixedReplayOffPolicyDQNAgent.qlambda = True
+FixedReplayOffPolicyDQNAgent.qlambda = False
 FixedReplayOffPolicyDQNAgent.empirical_pdis = False
 FixedReplayOffPolicyDQNAgent.moment_constraint = True
 FixedReplayOffPolicyDQNAgent.adjust_lr = None
